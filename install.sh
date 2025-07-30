@@ -165,7 +165,7 @@ main() {
         if command -v cargo >/dev/null 2>&1; then
             cargo install --path .
             setup_aliases
-            echo "\n🎉 git-navigator installed successfully from local source!"
+            echo -e "\n🎉 git-navigator installed successfully from local source!"
         else
             echo "❌ cargo not found. Please install Rust first."
             exit 1
