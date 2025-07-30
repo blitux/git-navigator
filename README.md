@@ -66,8 +66,10 @@ alias gl="git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %
 
 ### Supported Platforms
 - **Linux**: x64, ARM64 (glibc and musl)
-- **macOS**: Intel (x64), Apple Silicon (ARM64)  
 - **Windows**: x64
+
+## Unsupported (for now)
+- - **macOS**: Intel (x64), Apple Silicon (ARM64): I have some problems setting up the cross compilation for macos  
 
 ### Shell Compatibility
 - **Bash** (Linux/macOS/Windows)
