@@ -3,9 +3,9 @@
 set -e
 
 # Git Navigator Remote Installer
-# Usage: curl -sSL https://raw.githubusercontent.com/git-navigator/git-navigator/main/install.sh | bash
+# Usage: curl -sSL https://raw.githubusercontent.com/blitux/git-navigator/main/install.sh | bash
 
-REPO="git-navigator/git-navigator"
+REPO="blitux/git-navigator"
 INSTALL_DIR="$HOME/.local/bin"
 BINARY_NAME="git-navigator"
 

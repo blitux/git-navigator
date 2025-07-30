@@ -23,7 +23,7 @@ I may be wrong, of course. So, feel free to reach out if you have any suggestion
 
 ### Quick Install (Recommended)
 ```bash
-curl -sSL https://raw.githubusercontent.com/git-navigator/git-navigator/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/blitux/git-navigator/main/install.sh | bash
 ```
 
 This one-liner will:
