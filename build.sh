@@ -9,8 +9,11 @@ TARGETS=(
     "aarch64-unknown-linux-gnu" 
     "x86_64-unknown-linux-musl"
     "x86_64-pc-windows-gnu"
-    "x86_64-apple-darwin"
-    "aarch64-apple-darwin"
+)
+
+USE_CROSS_TARGETS=(
+    "aarch64-unknown-linux-gnu"
+    "x86_64-pc-windows-gnu"
 )
 
 OUTPUT_DIR="dist"
@@ -20,13 +23,21 @@ mkdir -p "$OUTPUT_DIR"
 echo "Building git-navigator for multiple platforms..."
 
 for target in "${TARGETS[@]}"; do
-    echo "Building for $target..."
-    
-    # Add target if not already installed
+    echo ""
+    echo "🔧 Building for $target..."
+
+    # Add target
     rustup target add "$target" 2>/dev/null || true
-    
-    # Build for target
-    if cargo build --release --target "$target"; then
+
+    # Decide whether to use cross or cargo
+    if [[ " ${USE_CROSS_TARGETS[*]} " == *" $target "* ]]; then
+        build_cmd="cross build --release --target $target"
+    else
+        build_cmd="cargo build --release --target $target"
+    fi
+
+    echo "→ Running: $build_cmd"
+    if eval $build_cmd; then
         # Copy binary with platform-specific naming
         if [[ "$target" == *"windows"* ]]; then
             binary_name="git-navigator-${target}.exe"
@@ -42,5 +53,5 @@ for target in "${TARGETS[@]}"; do
 done
 
 echo ""
-echo "Build complete. Binaries in $OUTPUT_DIR/:"
+echo "✅ Build complete. Binaries in $OUTPUT_DIR/:"
 ls -la "$OUTPUT_DIR/"
