@@ -1,0 +1,41 @@
+# Rust artifacts
+/target/
+Cargo.lock
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Claude Code local files
+.claude/
+CLAUDE.md
+claude.md
+CODE_INDEX.md
+
+# Backup files
+*.bak
+*.tmp
+*.orig
+
+# Log files
+*.log
+
+# Test artifacts
+test-repo/*
+!test-repo/README.md
+
+# Cache directories
+.cache/
+.local/

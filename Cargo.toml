@@ -1,0 +1,33 @@
+[package]
+name = "git-navigator"
+version = "0.1.0"
+edition = "2021"
+authors = ["Git Navigator Team"]
+description = "Clean, lean and fast git productivity tool"
+license = "MIT"
+repository = "https://github.com/git-navigator/git-navigator"
+keywords = ["git", "cli", "navigation", "developer-tools"]
+categories = ["command-line-utilities", "development-tools"]
+
+[[bin]]
+name = "git-navigator"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4.0", features = ["derive"] }
+git2 = "0.20"
+colored = "3.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+anyhow = "1.0"
+thiserror = "2.0"
+dirs = "6.0"
+md5 = "0.8"
+itoa = "1.0"
+log = "0.4"
+env_logger = "0.11"
+
+[dev-dependencies]
+tempfile = "3.0"
+assert_cmd = "2.0"
+predicates = "3.0"
