@@ -9,7 +9,7 @@ use std::env;
 #[derive(Parser)]
 #[command(name = "git-navigator")]
 #[command(about = "A lightweight and efficient Git navigation tool")]
-#[command(version = "0.1.0")]
+#[command(version = env!("CARGO_PKG_VERSION"))]
 struct Cli {
     /// Enable debug logging
     #[arg(long, global = true)]
