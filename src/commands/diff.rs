@@ -62,10 +62,10 @@ fn show_file_diff(git_repo: &GitRepo, file: &FileEntry) -> Result<()> {
 
     match file.status {
         GitStatus::Untracked => {
-            println!(
+            print_error(&format!(
                 "File is untracked: {}. No diff to show.",
                 file.path.display()
-            );
+            ));
             return Ok(());
         }
         GitStatus::Deleted => {

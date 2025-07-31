@@ -1,6 +1,9 @@
 use clap::{Parser, Subcommand};
 use git_navigator::commands::*;
-use git_navigator::core::{error::Result, print_error};
+use git_navigator::core::{
+    error::{GitNavigatorError, Result},
+    print_error,
+};
 use std::env;
 
 #[derive(Parser)]
@@ -63,23 +66,42 @@ fn main() -> Result<()> {
 
     match cli.command {
         Commands::Status => {
-            execute_status()?;
+            if let Err(e) = execute_status() {
+                if let GitNavigatorError::NotInGitRepo = e {
+                    print_error("Not in a git repository");
+                } else {
+                    print_error(&e.to_string());
+                }
+                std::process::exit(1);
+            }
         }
         Commands::Add { indices } => {
             if let Err(e) = execute_add(indices) {
-                print_error(&e.to_string());
+                if let GitNavigatorError::NotInGitRepo = e {
+                    print_error("Not in a git repository");
+                } else {
+                    print_error(&e.to_string());
+                }
                 std::process::exit(1);
             }
         }
         Commands::Diff { indices } => {
             if let Err(e) = execute_diff(indices) {
-                print_error(&e.to_string());
+                if let GitNavigatorError::NotInGitRepo = e {
+                    print_error("Not in a git repository");
+                } else {
+                    print_error(&e.to_string());
+                }
                 std::process::exit(1);
             }
         }
         Commands::Reset { indices } => {
             if let Err(e) = execute_reset(indices) {
-                print_error(&e.to_string());
+                if let GitNavigatorError::NotInGitRepo = e {
+                    print_error("Not in a git repository");
+                } else {
+                    print_error(&e.to_string());
+                }
                 std::process::exit(1);
             }
         }
@@ -88,13 +110,21 @@ fn main() -> Result<()> {
             indices,
         } => {
             if let Err(e) = execute_checkout_with_flags(create_branch, indices) {
-                print_error(&e.to_string());
+                if let GitNavigatorError::NotInGitRepo = e {
+                    print_error("Not in a git repository");
+                } else {
+                    print_error(&e.to_string());
+                }
                 std::process::exit(1);
             }
         }
         Commands::Branches { index } => {
             if let Err(e) = execute_branches(index) {
-                print_error(&e.to_string());
+                if let GitNavigatorError::NotInGitRepo = e {
+                    print_error("Not in a git repository");
+                } else {
+                    print_error(&e.to_string());
+                }
                 std::process::exit(1);
             }
         }
