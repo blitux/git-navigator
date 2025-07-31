@@ -19,11 +19,15 @@ dist
 ehthumbs.db
 Thumbs.db
 
-# Claude Code local files
+# LLM Tools
 .claude/
 CLAUDE.md
 claude.md
 CODE_INDEX.md
+.crush/
+crush.json
+CRUSH.md
+
 
 # Backup files
 *.bak
