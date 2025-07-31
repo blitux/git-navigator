@@ -6,6 +6,8 @@
 pub mod args_parser;
 pub mod colors;
 pub mod command_init;
+pub mod config;
+pub mod dirs;
 pub mod error;
 pub mod git;
 pub mod git_status;

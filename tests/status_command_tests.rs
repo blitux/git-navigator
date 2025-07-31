@@ -128,7 +128,7 @@ mod status_command_tests {
             .current_dir(non_repo_path)
             .assert()
             .failure()
-            .stderr(assertions::not_in_git_repo());
+            .stdout(assertions::not_in_git_repo());
 
         Ok(())
     }

@@ -102,7 +102,7 @@ pub fn print_success(message: &str) {
 /// - Message in white
 /// - Newlines before and after for spacing
 pub fn print_info(message: &str) {
-    println!("\n{}\n", message.white());
+    println!("\n{}", message.white());
 }
 
 /// Formats and prints a section header with consistent styling

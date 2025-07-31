@@ -2,7 +2,7 @@ use clap::{Parser, Subcommand};
 use git_navigator::commands::*;
 use git_navigator::core::{
     error::{GitNavigatorError, Result},
-    print_error,
+    print_error, print_success,
 };
 use std::env;
 
@@ -50,6 +50,16 @@ enum Commands {
     Branches {
         /// Branch index to checkout (if provided)
         index: Option<usize>,
+    },
+    /// Update git-navigator to the latest version
+    Update {
+        #[command(flatten)]
+        args: update::UpdateArgs,
+    },
+    /// Rollback to a previous version
+    Rollback {
+        #[command(flatten)]
+        args: rollback::RollbackArgs,
     },
 }
 
@@ -125,6 +135,28 @@ fn main() -> Result<()> {
                 } else {
                     print_error(&e.to_string());
                 }
+                std::process::exit(1);
+            }
+        }
+        Commands::Update { args } => {
+            if let Err(e) = update::execute_update(args) {
+                match e {
+                    GitNavigatorError::AlreadyUpToDate { current } => {
+                        print_success(&format!("Already up to date (v{current})"));
+                    }
+                    GitNavigatorError::UpdateCanceled => {
+                        print_error("Update canceled");
+                    }
+                    _ => {
+                        print_error(&e.to_string());
+                        std::process::exit(1);
+                    }
+                }
+            }
+        }
+        Commands::Rollback { args } => {
+            if let Err(e) = rollback::execute_rollback(args) {
+                print_error(&e.to_string());
                 std::process::exit(1);
             }
         }

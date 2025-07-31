@@ -138,6 +138,28 @@ pub enum GitNavigatorError {
     #[error("Failed to add files to git index: {source}")]
     GitAddFailed { source: git2::Error },
 
+    // Self-update errors
+    #[error("Update failed: {0}")]
+    UpdateFailed(String),
+    
+    #[error("Already up to date (v{current})")]
+    AlreadyUpToDate { current: String },
+    
+    #[error("Update canceled by user")]
+    UpdateCanceled,
+    
+    #[error("Config error: {0}")]
+    ConfigError(String),
+    
+    #[error("Self-update error: {0}")]
+    SelfUpdateError(#[from] Box<dyn std::error::Error + Send + Sync>),
+    
+    #[error("Rollback failed: {0}")]
+    RollbackFailed(String),
+    
+    #[error("Version {version} not found in backups")]
+    VersionNotFound { version: String },
+
     // JSON serialization errors
     #[error("JSON serialization error: {0}")]
     Json(#[from] serde_json::Error),
@@ -273,6 +295,41 @@ impl GitNavigatorError {
             path: path.into(),
             source,
         }
+    }
+
+    /// Create an update failed error
+    pub fn update_failed(message: impl Into<String>) -> Self {
+        Self::UpdateFailed(message.into())
+    }
+
+    /// Create an already up to date error
+    pub fn already_up_to_date(current: impl Into<String>) -> Self {
+        Self::AlreadyUpToDate {
+            current: current.into(),
+        }
+    }
+
+    /// Create a config error
+    pub fn config_error(message: impl Into<String>) -> Self {
+        Self::ConfigError(message.into())
+    }
+
+    /// Create a rollback failed error
+    pub fn rollback_failed(message: impl Into<String>) -> Self {
+        Self::RollbackFailed(message.into())
+    }
+
+    /// Create a version not found error
+    pub fn version_not_found(version: impl Into<String>) -> Self {
+        Self::VersionNotFound {
+            version: version.into(),
+        }
+    }
+}
+
+impl From<self_update::errors::Error> for GitNavigatorError {
+    fn from(err: self_update::errors::Error) -> Self {
+        GitNavigatorError::SelfUpdateError(Box::new(err))
     }
 }
 
