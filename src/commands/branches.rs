@@ -129,9 +129,8 @@ fn checkout_branch_by_index(git_repo: &GitRepo, index: usize) -> Result<()> {
         .iter()
         .find(|branch| branch.index == index)
         .ok_or_else(|| {
-            GitNavigatorError::custom_empty_files_error(&format!(
-                "Branch index {} not found",
-                index
+            GitNavigatorError::custom_empty_files_error(format!(
+                "Branch index {index} not found"
             ))
         })?;
 
@@ -153,14 +152,14 @@ fn checkout_branch_by_index(git_repo: &GitRepo, index: usize) -> Result<()> {
         .arg(&target_branch.name)
         .current_dir(workdir)
         .output()
-        .map_err(|e| GitNavigatorError::Io(e))?;
+        .map_err(GitNavigatorError::Io)?;
 
     if output.status.success() {
         println!("Switched to branch '{}'", target_branch.name);
         Ok(())
     } else {
         let error_msg = String::from_utf8_lossy(&output.stderr);
-        Err(GitNavigatorError::custom_empty_files_error(&format!(
+        Err(GitNavigatorError::custom_empty_files_error(format!(
             "Failed to checkout branch '{}': {}",
             target_branch.name,
             error_msg.trim()
@@ -179,21 +178,20 @@ fn get_local_branches(git_repo: &GitRepo) -> Result<Vec<BranchEntry>> {
 
     // List all local branches
     let branch_iter = repo.branches(Some(git2::BranchType::Local)).map_err(|e| {
-        GitNavigatorError::custom_empty_files_error(&format!("Failed to list branches: {}", e))
+        GitNavigatorError::custom_empty_files_error(format!("Failed to list branches: {e}"))
     })?;
 
     let mut branch_names = Vec::new();
     for branch in branch_iter {
         let branch = branch.map_err(|e| {
-            GitNavigatorError::custom_empty_files_error(&format!("Failed to read branch: {}", e))
+            GitNavigatorError::custom_empty_files_error(format!("Failed to read branch: {e}"))
         })?;
         let name = branch
             .0
             .name()
             .map_err(|e| {
-                GitNavigatorError::custom_empty_files_error(&format!(
-                    "Failed to get branch name: {}",
-                    e
+                GitNavigatorError::custom_empty_files_error(format!(
+                    "Failed to get branch name: {e}"
                 ))
             })?
             .ok_or_else(|| {

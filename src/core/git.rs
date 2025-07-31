@@ -43,11 +43,11 @@ impl GitRepo {
 
         cmd.current_dir(workdir);
 
-        let output = cmd.output().map_err(|e| GitNavigatorError::Io(e))?;
+        let output = cmd.output().map_err(GitNavigatorError::Io)?;
 
         if !output.status.success() {
             let error_msg = String::from_utf8_lossy(&output.stderr);
-            return Err(GitNavigatorError::custom_empty_files_error(&format!(
+            return Err(GitNavigatorError::custom_empty_files_error(format!(
                 "git command failed: {}",
                 error_msg.trim()
             )));

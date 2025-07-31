@@ -3,6 +3,7 @@ use crate::core::{
     error::{GitNavigatorError, Result},
     git::GitRepo,
     git_status::GitStatus,
+    output::print_error,
     print_error_with_structured_usage,
     state::FileEntry,
 };
@@ -30,11 +31,17 @@ pub fn execute_diff(indices_args: Vec<String>) -> Result<()> {
     // Get the files to diff
     let files_to_diff = context.get_selected_files();
 
-    println!("Showing diff for {} file(s):", files_to_diff.len());
-    for file in &files_to_diff {
-        println!("  [{}] {}", file.index, file.path.display());
+    let all_untracked = files_to_diff
+        .iter()
+        .all(|f| f.status == GitStatus::Untracked);
+
+    if !all_untracked {
+        println!("Showing diff for {} file(s):", files_to_diff.len());
+        for file in &files_to_diff {
+            println!("  [{}] {}", file.index, file.path.display());
+        }
+        println!();
     }
-    println!();
 
     // Show diff for each file
     for (i, file) in files_to_diff.iter().enumerate() {
@@ -91,19 +98,19 @@ fn show_file_diff(git_repo: &GitRepo, file: &FileEntry) -> Result<()> {
 
     let output = cmd
         .output()
-        .map_err(|e| crate::core::error::GitNavigatorError::Io(e))?;
+        .map_err(crate::core::error::GitNavigatorError::Io)?;
 
     if output.status.success() {
         let diff_output = String::from_utf8_lossy(&output.stdout);
         if !diff_output.trim().is_empty() {
-            println!("{}", diff_output);
+            println!("{diff_output}");
         } else {
             println!("No changes to show for {}", file.path.display());
         }
     } else {
         let error_msg = String::from_utf8_lossy(&output.stderr);
         return Err(
-            crate::core::error::GitNavigatorError::custom_empty_files_error(&format!(
+            crate::core::error::GitNavigatorError::custom_empty_files_error(format!(
                 "git diff failed: {}",
                 error_msg.trim()
             )),

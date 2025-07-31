@@ -129,9 +129,9 @@ mod diff_command_tests {
             .current_dir(&repo.path)
             .assert()
             .success()
-            .stdout(predicate::str::contains("Showing diff for"))
-            .stdout(predicate::str::contains("[1] newfile.txt"))
-            .stdout(predicate::str::contains("untracked"));
+            .stdout(predicate::str::contains("✕ Error:"))
+            .stdout(predicate::str::contains("File is untracked: newfile.txt"))
+            .stdout(predicate::str::contains("No diff to show"));
 
         Ok(())
     }

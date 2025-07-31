@@ -70,7 +70,7 @@ pub fn execute_checkout(indices_args: Vec<String>) -> Result<()> {
         }
 
         // If it's not a pure number or range, treat as potential branch name
-        if !is_numeric_index(&arg) {
+        if !is_numeric_index(arg) {
             return checkout_branch_by_name(arg);
         }
     }
@@ -160,14 +160,12 @@ fn checkout_branch_by_name(branch_name: &str) -> Result<()> {
     match git_repo.checkout_branch(branch_name) {
         Ok(()) => {
             print_success(&format!(
-                "Successfully switched to branch '{}'",
-                branch_name
+                "Successfully switched to branch '{branch_name}'"
             ));
         }
         Err(e) => {
             print_error(&format!(
-                "Failed to checkout branch '{}': {}",
-                branch_name, e
+                "Failed to checkout branch '{branch_name}': {e}"
             ));
             return Err(e);
         }
@@ -182,12 +180,11 @@ fn create_and_checkout_branch(branch_name: &str) -> Result<()> {
     match git_repo.create_branch(branch_name) {
         Ok(()) => {
             print_success(&format!(
-                "Successfully created and switched to branch '{}'",
-                branch_name
+                "Successfully created and switched to branch '{branch_name}'"
             ));
         }
         Err(e) => {
-            print_error(&format!("Failed to create branch '{}': {}", branch_name, e));
+            print_error(&format!("Failed to create branch '{branch_name}': {e}"));
             return Err(e);
         }
     }
