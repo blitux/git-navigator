@@ -64,30 +64,52 @@ install_binary() {
     fi
 
     if command -v curl >/dev/null 2>&1; then
-        curl -sL "$download_url" -o "$temp_file"
+        if ! curl -sL "$download_url" -o "$temp_file" --fail --show-error; then
+            echo "❌ Download failed: Could not fetch $download_url"
+            echo "   Please check if the release exists and your network connection is working."
+            exit 1
+        fi
     elif command -v wget >/dev/null 2>&1; then
-        wget -q "$download_url" -O "$temp_file"
+        if ! wget -q "$download_url" -O "$temp_file"; then
+            echo "❌ Download failed: Could not fetch $download_url"
+            echo "   Please check if the release exists and your network connection is working."
+            exit 1
+        fi
     else
         echo "❌ Neither curl nor wget found. Cannot download."
         exit 1
     fi
 
     if [[ ! -f "$temp_file" ]] || [[ ! -s "$temp_file" ]]; then
-        echo "❌ Download failed or file is empty"
+        echo "❌ Download failed: File is empty or does not exist"
+        echo "   URL: $download_url"
+        echo "   This might indicate the binary doesn't exist for platform: $platform"
         exit 1
     fi
 
     mkdir -p "$INSTALL_DIR"
 
+    local final_binary_name="$BINARY_NAME"
     if [[ "$platform" == windows-* ]]; then
-        mv "$temp_file" "$INSTALL_DIR/git-navigator-x64.exe"
-        chmod +x "$INSTALL_DIR/git-navigator-x64.exe"
-    else
-        mv "$temp_file" "$INSTALL_DIR/$BINARY_NAME"
-        chmod +x "$INSTALL_DIR/$BINARY_NAME"
+        final_binary_name="$BINARY_NAME.exe"
     fi
 
-    echo "✓ Binary installed to $INSTALL_DIR/$BINARY_NAME"
+    # Check if binary already exists and warn about overwrite
+    if [[ -f "$INSTALL_DIR/$final_binary_name" ]]; then
+        echo "⚠️  Existing git-navigator binary found at $INSTALL_DIR/$final_binary_name"
+        echo "   This installation will overwrite the existing binary."
+        echo "   This is useful if you're experiencing issues with the current version."
+    fi
+
+    mv "$temp_file" "$INSTALL_DIR/$final_binary_name"
+    chmod +x "$INSTALL_DIR/$final_binary_name"
+
+    if [[ -f "$INSTALL_DIR/$final_binary_name" ]]; then
+        echo "✓ Binary installed to $INSTALL_DIR/$final_binary_name"
+    else
+        echo "❌ Failed to install binary to $INSTALL_DIR/$final_binary_name"
+        exit 1
+    fi
 }
 
 # Add install directory to PATH if needed
