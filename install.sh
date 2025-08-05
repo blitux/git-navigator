@@ -59,6 +59,10 @@ install_binary() {
     echo "Downloading $binary_name from version $version..."
     echo "Download URL: $download_url"
 
+    if [[ "$platform" == windows-* ]]; then
+        download_url="${download_url}.exe"
+    fi
+
     if command -v curl >/dev/null 2>&1; then
         curl -sL "$download_url" -o "$temp_file"
     elif command -v wget >/dev/null 2>&1; then
