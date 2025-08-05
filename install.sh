@@ -76,8 +76,8 @@ install_binary() {
     mkdir -p "$INSTALL_DIR"
 
     if [[ "$platform" == windows-* ]]; then
-        mv "$temp_file" "$INSTALL_DIR/git-navigator.exe"
-        chmod +x "$INSTALL_DIR/git-navigator.exe"
+        mv "$temp_file" "$INSTALL_DIR/git-navigator-x64.exe"
+        chmod +x "$INSTALL_DIR/git-navigator-x64.exe"
     else
         mv "$temp_file" "$INSTALL_DIR/$BINARY_NAME"
         chmod +x "$INSTALL_DIR/$BINARY_NAME"
