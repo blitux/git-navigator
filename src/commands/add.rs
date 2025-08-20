@@ -6,6 +6,11 @@ use crate::core::{
 };
 
 pub fn execute_add(indices_args: Vec<String>) -> Result<()> {
+    // Check for special case: add all files with "."
+    if indices_args.len() == 1 && indices_args[0] == "." {
+        return execute_add_all();
+    }
+
     // Initialize everything needed for this index-based command
     let context = match IndexCommandInit::initialize_with_messages(
         indices_args,
@@ -16,7 +21,7 @@ pub fn execute_add(indices_args: Vec<String>) -> Result<()> {
         Err(GitNavigatorError::NoIndicesProvided) => {
             print_error_with_structured_usage(
                 "No file indices provided",
-                &["ga <index>..."],
+                &["ga <index>...", "ga ."],
                 &[("-h, --help", "Show this help message")],
             );
             return Err(GitNavigatorError::NoIndicesProvided);
@@ -69,6 +74,43 @@ pub fn execute_add(indices_args: Vec<String>) -> Result<()> {
     Ok(())
 }
 
+/// Add all files to the git index using `git add .`
+fn execute_add_all() -> Result<()> {
+    use crate::core::git::GitRepo;
+    use std::env;
+
+    // Initialize git repository
+    let current_dir = env::current_dir()?;
+    let git_repo = GitRepo::open(&current_dir).map_err(|_| GitNavigatorError::NotInGitRepo)?;
+
+    // Execute `git add .` command
+    let mut cmd = std::process::Command::new("git");
+    cmd.arg("add").arg(".");
+    
+    let workdir = git_repo.get_repository()
+        .workdir()
+        .ok_or(GitNavigatorError::custom_empty_files_error("Repository has no working directory"))?;
+    
+    cmd.current_dir(workdir);
+    let output = cmd.output().map_err(GitNavigatorError::Io)?;
+
+    if !output.status.success() {
+        let error_msg = String::from_utf8_lossy(&output.stderr);
+        return Err(GitNavigatorError::custom_empty_files_error(format!(
+            "git add . failed: {}",
+            error_msg.trim()
+        )));
+    }
+
+    print_success("Successfully added all files to git index.");
+
+    // Show updated status
+    print_info("Updated status:");
+    execute_status()?;
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -85,6 +127,29 @@ mod tests {
         assert!(
             error_msg.contains("No file indices provided")
                 || error_msg.contains("Cannot load file cache")
+        );
+    }
+
+    #[test]
+    fn test_execute_add_dot_argument() {
+        // Test that "." is handled as a special case
+        let result = execute_add(vec![".".to_string()]);
+        // In this git repository, the command should succeed
+        // because we're running in an actual git repo
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_execute_add_dot_with_other_args() {
+        // Test that "." with other arguments doesn't trigger the special case
+        let result = execute_add(vec![".".to_string(), "1".to_string()]);
+        assert!(result.is_err());
+        // This should go through normal index parsing, not the special case
+        let error_msg = result.unwrap_err().to_string();
+        assert!(
+            error_msg.contains("Cannot load file cache")
+                || error_msg.contains("Invalid index format")
+                || error_msg.contains("Not in a git repository")
         );
     }
 
