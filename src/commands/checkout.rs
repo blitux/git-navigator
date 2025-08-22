@@ -1,4 +1,4 @@
-use crate::commands::status::{execute_status, print_files_only};
+use crate::commands::status::{execute_status, print_files_only, invalidate_files_cache};
 use crate::core::{
     command_init::IndexCommandInit,
     error::{GitNavigatorError, Result},
@@ -143,6 +143,16 @@ fn checkout_files_by_indices(indices_args: Vec<String>) -> Result<()> {
         }
         Err(e) => {
             return Err(e);
+        }
+    }
+
+    // Invalidate cache after successful git operation to prevent stale references
+    #[cfg(not(test))]
+    {
+        if let Err(e) = invalidate_files_cache(&context.git_repo.get_repo_path()) {
+            log::warn!("Cache invalidation failed (command succeeded): {e}");
+            #[cfg(debug_assertions)]
+            eprintln!("Warning: Cache invalidation failed: {e}");
         }
     }
 

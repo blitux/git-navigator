@@ -1,4 +1,4 @@
-use crate::commands::status::{execute_status, print_files_only};
+use crate::commands::status::{execute_status, print_files_only, invalidate_files_cache};
 use crate::core::{
     command_init::IndexCommandInit,
     error::{GitNavigatorError, Result},
@@ -74,6 +74,16 @@ pub fn execute_add(indices_args: Vec<String>) -> Result<()> {
         }
     }
 
+    // Invalidate cache after successful git operation to prevent stale references
+    #[cfg(not(test))]
+    {
+        if let Err(e) = invalidate_files_cache(&context.git_repo.get_repo_path()) {
+            log::warn!("Cache invalidation failed (command succeeded): {e}");
+            #[cfg(debug_assertions)]
+            eprintln!("Warning: Cache invalidation failed: {e}");
+        }
+    }
+
     // Show updated status
     print_info("Updated status:");
     let updated_files = context.git_repo.get_status()?;
@@ -112,6 +122,16 @@ fn execute_add_all() -> Result<()> {
 
     print_success("Successfully added all files to git index.");
 
+    // Invalidate cache after successful git operation to prevent stale references
+    #[cfg(not(test))]
+    {
+        if let Err(e) = invalidate_files_cache(&git_repo.get_repo_path()) {
+            log::warn!("Cache invalidation failed (command succeeded): {e}");
+            #[cfg(debug_assertions)]
+            eprintln!("Warning: Cache invalidation failed: {e}");
+        }
+    }
+
     // Show updated status
     print_info("Updated status:");
     execute_status()?;
@@ -149,6 +169,16 @@ fn execute_add_folder(folder: &str) -> Result<()> {
     }
 
     print_success(&format!("Successfully added folder '{}' to git index.", folder));
+
+    // Invalidate cache after successful git operation to prevent stale references
+    #[cfg(not(test))]
+    {
+        if let Err(e) = invalidate_files_cache(&git_repo.get_repo_path()) {
+            log::warn!("Cache invalidation failed (command succeeded): {e}");
+            #[cfg(debug_assertions)]
+            eprintln!("Warning: Cache invalidation failed: {e}");
+        }
+    }
 
     // Show updated status
     print_info("Updated status:");
