@@ -124,7 +124,7 @@ pub fn execute_status() -> Result<()> {
     Ok(())
 }
 
-fn save_files_cache(files: &[crate::core::state::FileEntry], repo_path: PathBuf) -> Result<()> {
+pub fn save_files_cache(files: &[crate::core::state::FileEntry], repo_path: PathBuf) -> Result<()> {
     use crate::core::error::GitNavigatorError;
 
     log::debug!("Attempting to save {} files to cache", files.len());
@@ -705,7 +705,7 @@ mod tests {
     }
 
     #[test]
-    fn test_invalidate_files_cache_existing_file() -> Result<()> {
+    fn test_cache_update_workflow() -> Result<()> {
         let temp_dir = TempDir::new().map_err(|e| GitNavigatorError::Io(e))?;
         let repo_path = temp_dir.path().to_path_buf();
 
@@ -713,62 +713,33 @@ mod tests {
         let original_cache_home = std::env::var("XDG_CACHE_HOME").ok();
         std::env::set_var("XDG_CACHE_HOME", temp_dir.path());
 
-        // Create a cache file first
-        let test_files = vec![crate::core::state::FileEntry {
+        // Create initial cache
+        let initial_files = vec![crate::core::state::FileEntry {
             index: 1,
             status: crate::core::git_status::GitStatus::Modified,
             path: PathBuf::from("test.txt"),
             staged: false,
         }];
         
-        // Save the cache file
-        let save_result = save_files_cache(&test_files, repo_path.clone());
+        let save_result = save_files_cache(&initial_files, repo_path.clone());
         
-        // Get cache dir and file path after potentially successful save
-        let cache_dir = get_cache_dir(&repo_path)?;
-        let cache_file = cache_dir.join("files.json");
-        
-        // Only proceed with the test if cache file was successfully created
-        if save_result.is_ok() && cache_file.exists() {
-            // Now invalidate it
-            let result = invalidate_files_cache(&repo_path);
+        // Update cache with new state (simulating after git operation)
+        let updated_files = vec![
+            crate::core::state::FileEntry {
+                index: 1,
+                status: crate::core::git_status::GitStatus::Added,
+                path: PathBuf::from("test.txt"),
+                staged: true,
+            },
+            crate::core::state::FileEntry {
+                index: 2,
+                status: crate::core::git_status::GitStatus::Untracked,
+                path: PathBuf::from("new_file.txt"),
+                staged: false,
+            },
+        ];
 
-            // Restore environment
-            match original_cache_home {
-                Some(val) => std::env::set_var("XDG_CACHE_HOME", val),
-                None => std::env::remove_var("XDG_CACHE_HOME"),
-            }
-
-            // Should succeed
-            assert!(result.is_ok(), "Cache invalidation should succeed: {:?}", result);
-            
-            // Cache file should no longer exist
-            assert!(!cache_file.exists(), "Cache file should be deleted after invalidation");
-        } else {
-            // Restore environment
-            match original_cache_home {
-                Some(val) => std::env::set_var("XDG_CACHE_HOME", val),
-                None => std::env::remove_var("XDG_CACHE_HOME"),
-            }
-            
-            // Skip test if we couldn't create cache file (possibly due to env variable race)
-            println!("Skipping test due to cache creation failure: {:?}", save_result);
-        }
-
-        Ok(())
-    }
-
-    #[test]
-    fn test_invalidate_files_cache_nonexistent_file() -> Result<()> {
-        let temp_dir = TempDir::new().map_err(|e| GitNavigatorError::Io(e))?;
-        let repo_path = temp_dir.path().to_path_buf();
-
-        // Temporarily change the cache home directory to our temp dir
-        let original_cache_home = std::env::var("XDG_CACHE_HOME").ok();
-        std::env::set_var("XDG_CACHE_HOME", temp_dir.path());
-
-        // Try to invalidate non-existent cache
-        let result = invalidate_files_cache(&repo_path);
+        let update_result = save_files_cache(&updated_files, repo_path.clone());
 
         // Restore environment
         match original_cache_home {
@@ -776,8 +747,22 @@ mod tests {
             None => std::env::remove_var("XDG_CACHE_HOME"),
         }
 
-        // Should still succeed (graceful handling of non-existent files)
-        assert!(result.is_ok(), "Cache invalidation should succeed even for non-existent files: {:?}", result);
+        // Should succeed
+        assert!(save_result.is_ok(), "Initial cache save should succeed: {:?}", save_result);
+        assert!(update_result.is_ok(), "Cache update should succeed: {:?}", update_result);
+
+        // Verify cache was updated by loading it
+        if save_result.is_ok() && update_result.is_ok() {
+            match load_files_cache(&repo_path) {
+                Ok(cached_files) => {
+                    assert_eq!(cached_files.len(), 2, "Cache should contain 2 files after update");
+                    assert_eq!(cached_files[0].status, crate::core::git_status::GitStatus::Added);
+                    assert!(cached_files[0].staged, "First file should be staged");
+                    assert_eq!(cached_files[1].path, PathBuf::from("new_file.txt"));
+                }
+                Err(_) => println!("Skipping cache verification due to environment issues"),
+            }
+        }
 
         Ok(())
     }
