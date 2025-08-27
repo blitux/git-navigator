@@ -30,13 +30,13 @@ pub struct FileEntry {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Tabled)]
 pub struct BranchEntry {
-    #[tabled(display_with = "Self::display_index")]
+    #[tabled(display = "Self::display_index")]
     pub index: String,
-    #[tabled(display_with = "Self::display_name")]
+    #[tabled(display = "Self::display_name")]
     pub name: String,
     #[tabled(skip)]
     pub is_current: bool,
-    #[tabled(display_with = "Self::display_tracking")]
+    #[tabled(display = "Self::display_tracking")]
     pub tracking_info: String,
     #[tabled(skip)]
     pub is_remote: bool,
