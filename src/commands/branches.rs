@@ -3,8 +3,8 @@ use crate::core::{
     git::GitRepo,
     print_info,
     state::{BranchEntry, StateCache},
+    CommandTemplate,
 };
-use colored::*;
 use std::env;
 use std::fs;
 use std::path::PathBuf;
@@ -40,34 +40,24 @@ fn list_branches(git_repo: &GitRepo, show_remote: bool) -> Result<()> {
         return Ok(());
     }
 
-    // Follow template: \n(title/header)\n(body)\n(help)\n
-    println!(); // Opening whitespace
-    
-    // Show title/header
-    if show_remote {
-        println!("{}", "Remote Branches".blue());
-    } else {
-        println!("{}", "Local Branches".blue());
-    }
-    println!(); // Spacing after title
-    
     // Create table with tabled - no borders, no headers
     let mut table = Table::new(&branches);
     table.with(Style::blank()); // No borders
     table.with(Remove::row(Rows::first())); // Remove header row
 
-    println!("{}", table);
-    
-    println!(); // Spacing before help
-    
-    // Show help message in bright_black
-    if show_remote {
-        println!("{}", "Use gb <index> to checkout or gb without --remote for local branches.".bright_black());
+    // Use template system for consistent formatting
+    let title = if show_remote { "Remote Branches" } else { "Local Branches" };
+    let help_text = if show_remote {
+        "Use gb <index> to checkout or gb without --remote for local branches."
     } else {
-        println!("{}", "Use gb --remote to list remote branches.".bright_black());
-    }
-    
-    println!(); // Closing whitespace
+        "Use gb --remote to list remote branches."
+    };
+
+    CommandTemplate::new()
+        .title(title)
+        .body(table)
+        .help(help_text)
+        .print();
 
     // Save to cache for branch checkout command (only local branches)
     #[cfg(not(test))]
@@ -439,7 +429,7 @@ mod tests {
 
         // Test that we can open the repo without changing directories
         let git_repo = GitRepo::open(&repo_path)?;
-        let branches = get_local_branches(&git_repo)?;
+        let branches = get_local_branches_with_tracking(&git_repo)?;
 
         // Verify no branches exist
         assert!(branches.is_empty());

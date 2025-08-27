@@ -14,6 +14,7 @@ pub mod git_status;
 pub mod index_parser;
 pub mod output;
 pub mod state;
+pub mod template;
 pub mod templates;
 
 // === Error handling ===
@@ -70,3 +71,7 @@ pub use colors::{
 pub use output::{
     print_error, print_error_with_structured_usage, print_info, print_section_header, print_success,
 };
+
+// === Command templates ===
+// Template system for consistent command output formatting
+pub use template::{CommandTemplate, TemplateSection};
