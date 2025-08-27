@@ -1,9 +1,12 @@
+#[cfg(not(test))]
 use crate::commands::status::{execute_status, print_files_only, save_files_cache};
+#[cfg(test)]
+use crate::commands::status::{execute_status, print_files_only};
 use crate::core::{
     command_init::IndexCommandInit,
     error::{GitNavigatorError, Result},
     git::GitRepo,
-    print_error, print_error_with_structured_usage, print_info, print_success,
+    print_error, print_error_with_structured_usage, print_info,
     CommandTemplate,
 };
 
@@ -139,7 +142,7 @@ fn checkout_files_by_indices(indices_args: Vec<String>) -> Result<()> {
 
     let file_word = if selected_files.len() == 1 { "file" } else { "files" };
     CommandTemplate::new()
-        .success(&format!(
+        .success(format!(
             "Successfully checked out {} {}.",
             selected_files.len(),
             file_word
@@ -170,7 +173,7 @@ fn checkout_branch_by_name(branch_name: &str) -> Result<()> {
     git_repo.checkout_branch(branch_name)?;
     
     CommandTemplate::new()
-        .success(&format!(
+        .success(format!(
             "Successfully switched to branch '{branch_name}'"
         ))
         .print();
@@ -184,7 +187,7 @@ fn create_and_checkout_branch(branch_name: &str) -> Result<()> {
     git_repo.create_branch(branch_name)?;
     
     CommandTemplate::new()
-        .success(&format!(
+        .success(format!(
             "Successfully created and switched to branch '{branch_name}'"
         ))
         .print();

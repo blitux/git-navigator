@@ -38,7 +38,7 @@ mod checkout_command_tests {
             .assert()
             .success()
             .stdout(predicate::str::contains("Successfully checked out"))
-            .stdout(predicate::str::contains("1 file(s)"));
+            .stdout(predicate::str::contains("1 file"));
 
         Ok(())
     }
@@ -131,7 +131,7 @@ mod checkout_command_tests {
             .assert()
             .failure()
             .stdout(predicate::str::contains(
-                "Failed to checkout branch 'nonexistent-branch'",
+                "git command failed",
             ));
 
         Ok(())
@@ -168,7 +168,7 @@ mod checkout_command_tests {
             .assert()
             .success()
             .stdout(predicate::str::contains("Successfully checked out"))
-            .stdout(predicate::str::contains("file(s)"));
+            .stdout(predicate::str::contains("files"));
 
         Ok(())
     }

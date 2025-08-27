@@ -37,12 +37,6 @@ pub fn get_status_color_style(status: GitStatus) -> Box<dyn Fn(&str) -> ColoredS
     }
 }
 
-/// Legacy function for string-based status (backward compatibility during migration)
-pub fn get_status_color_style_legacy(status: &str) -> Box<dyn Fn(&str) -> ColoredString> {
-    let git_status = GitStatus::from(status);
-    get_status_color_style(git_status)
-}
-
 /// Get colored status symbol with proper alignment
 pub fn get_aligned_status(status: GitStatus) -> ColoredString {
     let color_fn = get_status_color_style(status);
@@ -53,22 +47,10 @@ pub fn get_aligned_status(status: GitStatus) -> ColoredString {
     }
 }
 
-/// Legacy function for string-based status (backward compatibility)
-pub fn get_aligned_status_legacy(status: &str) -> ColoredString {
-    let git_status = GitStatus::from(status);
-    get_aligned_status(git_status)
-}
-
 /// Get colored file path using the status color
 pub fn get_colored_path(status: GitStatus, path: &str) -> ColoredString {
     let color_fn = get_status_color_style(status);
     color_fn(path)
-}
-
-/// Legacy function for string-based status (backward compatibility)
-pub fn get_colored_path_legacy(status: &str, path: &str) -> ColoredString {
-    let git_status = GitStatus::from(status);
-    get_colored_path(git_status, path)
 }
 
 /// Get colored status for legend display
@@ -81,17 +63,12 @@ pub fn get_legend_status(status: GitStatus) -> ColoredString {
     }
 }
 
-/// Legacy function for string-based status (backward compatibility)
-pub fn get_legend_status_legacy(status: &str) -> ColoredString {
-    let git_status = GitStatus::from(status);
-    get_legend_status(git_status)
-}
-
 /// Legacy function for backwards compatibility (now uses unified color system)
 pub fn format_file_status(index: usize, status: &str, path: &str) -> String {
+    let git_status = GitStatus::from(status);
     let index_colored = format!("[{index}]").cyan().bold();
-    let status_colored = get_aligned_status_legacy(status);
-    let path_colored = get_colored_path_legacy(status, path);
+    let status_colored = get_aligned_status(git_status);
+    let path_colored = get_colored_path(git_status, path);
 
     // Format like git status: single space for ?? (two chars), two spaces for single char statuses
     let spacing = if status.len() == 2 { " " } else { "  " };

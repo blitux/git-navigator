@@ -3,7 +3,7 @@ use clap::Parser;
 use semver::Version;
 use crate::core::error::GitNavigatorError;
 use crate::core::config::InstallConfig;
-use crate::core::{print_info, print_section_header, print_success};
+use crate::core::{print_info, print_success, CommandTemplate};
 use colored::*;
 
 // Repository configuration constants
@@ -101,7 +101,7 @@ pub fn execute_update(args: UpdateArgs) -> Result<(), GitNavigatorError> {
     match status.updated() {
         true => {
             print_success(&format!("Successfully updated to v{}\n", status.version()));
-            update_config_after_update(&status.version())?;
+            update_config_after_update(status.version())?;
         },
         false => {
             print_success(&format!("Already up to date (v{current_version})\n"));
@@ -111,39 +111,63 @@ pub fn execute_update(args: UpdateArgs) -> Result<(), GitNavigatorError> {
 }
 
 fn display_update_check(current: &str, latest: &self_update::update::Release) -> Result<(), GitNavigatorError> {
-    print_section_header("Version information");
-    println!("   Current: {}", format!("v{current}").blue());
-    println!("   Latest:  {}", format!("v{}", latest.version).blue());
+    let version_info = format!(
+        "   Current: {}\n   Latest:  {}",
+        format!("v{current}").blue(),
+        format!("v{}", latest.version).blue()
+    );
     
     if needs_update(current, &latest.version)? {
-        println!("   Status:  {}", "Update available".yellow());
+        let status_msg = format!("   Status:  {}", "Update available".yellow());
+        let mut body = format!("{version_info}\n{status_msg}");
         
         if let Some(notes) = &latest.body {
-            print_section_header("What's new");
+            let mut release_notes = String::new();
             for line in notes.lines().take(5) {
                 let clean_line = line.trim_start_matches("- ").trim_start_matches("* ");
                 if !clean_line.is_empty() {
-                    println!("   {} {}", "•".bright_black(), clean_line.white());
+                    release_notes.push_str(&format!("   {} {}\n", "•".bright_black(), clean_line.white()));
                 }
+            }
+            if !release_notes.is_empty() {
+                body.push_str("\n\nWhat's new:\n");
+                body.push_str(&release_notes);
             }
         }
         
-        print_info("Run 'git-navigator update' to install the update");
+        CommandTemplate::new()
+            .title("Version information")
+            .body(&body)
+            .help("Run 'git-navigator update' to install the update")
+            .print();
     } else {
-        println!("   Status:  {}\n", "Up to date".green());
+        let status_msg = format!("   Status:  {}", "Up to date".green());
+        CommandTemplate::new()
+            .title("Version information")
+            .body(format!("{version_info}\n{status_msg}"))
+            .print();
     }
     
     Ok(())
 }
 
 fn confirm_update(current: &str, latest: &str) -> bool {
-    print_section_header("Update process");
-    println!("   {}. Download git-navigator {} from GitHub Releases", "1".bright_black(), format!("v{latest}").blue());
-    println!("   {}. Verify download integrity with checksums", "2".bright_black());
-    println!("   {}. Backup current binary ({})", "3".bright_black(), format!("v{current}").blue());
-    println!("   {}. Replace binary atomically", "4".bright_black());
-    println!("   {}. Verify installation", "5".bright_black());
+    let process_steps = format!(
+        "   {}. Download git-navigator {} from GitHub Releases\n   {}. Verify download integrity with checksums\n   {}. Backup current binary ({})\n   {}. Replace binary atomically\n   {}. Verify installation",
+        "1".bright_black(), 
+        format!("v{latest}").blue(),
+        "2".bright_black(),
+        "3".bright_black(),
+        format!("v{current}").blue(),
+        "4".bright_black(),
+        "5".bright_black()
+    );
     
+    CommandTemplate::new()
+        .title("Update process")
+        .body(&process_steps)
+        .print();
+        
     print!("\n{} ", "Proceed with update? [y/N]:".blue());
     io::stdout().flush().unwrap();
     

@@ -4,7 +4,7 @@ use clap::Parser;
 use semver::Version;
 use crate::core::error::GitNavigatorError;
 use crate::core::dirs::get_config_directory;
-use crate::core::{print_info, print_section_header, print_success};
+use crate::core::{print_info, print_success, CommandTemplate};
 use colored::*;
 
 #[derive(Parser)]
@@ -42,23 +42,19 @@ fn list_available_backups() -> Result<(), GitNavigatorError> {
         return Ok(());
     }
     
-    print_section_header("Available backups");
-    
     let mut backups = Vec::new();
-    for entry in std::fs::read_dir(backup_dir)? {
-        if let Ok(entry) = entry {
-            let path = entry.path();
-            if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-                if name.starts_with("git-navigator-v") {
-                    let version = name.strip_prefix("git-navigator-v").unwrap();
-                    let metadata = entry.metadata()?;
-                    backups.push(BackupInfo {
-                        version: version.to_string(),
-                        path,
-                        size: metadata.len(),
-                        created: metadata.modified()?,
-                    });
-                }
+    for entry in (std::fs::read_dir(backup_dir)?).flatten() {
+        let path = entry.path();
+        if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+            if name.starts_with("git-navigator-v") {
+                let version = name.strip_prefix("git-navigator-v").unwrap();
+                let metadata = entry.metadata()?;
+                backups.push(BackupInfo {
+                    version: version.to_string(),
+                    path,
+                    size: metadata.len(),
+                    created: metadata.modified()?,
+                });
             }
         }
     }
@@ -68,21 +64,27 @@ fn list_available_backups() -> Result<(), GitNavigatorError> {
             .cmp(&Version::parse(&a.version).unwrap_or_else(|_| Version::new(0, 0, 0)))
     });
     
+    let mut backup_list = String::new();
     for (i, backup) in backups.iter().enumerate() {
         let size = backup.size / 1024;
         let date = backup.created
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_secs();
-        println!("  {} {} ({} KB, created {})", 
+        backup_list.push_str(&format!("  {} {} ({} KB, created {})\n", 
                  format!("[{}]", i + 1).bright_black(),
                  format!("v{}", backup.version).blue(), 
                  size.to_string().bright_black(),
                  chrono::DateTime::from_timestamp(date as i64, 0)
                      .unwrap()
                      .format("%Y-%m-%d %H:%M")
-                     .to_string().bright_black());
+                     .to_string().bright_black()));
     }
+    
+    CommandTemplate::new()
+        .title("Available backups")
+        .body(backup_list.trim_end())
+        .print();
     
     Ok(())
 }
@@ -96,14 +98,12 @@ fn interactive_rollback() -> Result<(), GitNavigatorError> {
     }
     
     let mut backups = Vec::new();
-    for entry in std::fs::read_dir(backup_dir)? {
-        if let Ok(entry) = entry {
-            let path = entry.path();
-            if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-                if name.starts_with("git-navigator-v") {
-                    let version = name.strip_prefix("git-navigator-v").unwrap();
-                    backups.push((version.to_string(), path));
-                }
+    for entry in (std::fs::read_dir(backup_dir)?).flatten() {
+        let path = entry.path();
+        if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+            if name.starts_with("git-navigator-v") {
+                let version = name.strip_prefix("git-navigator-v").unwrap();
+                backups.push((version.to_string(), path));
             }
         }
     }
@@ -117,10 +117,15 @@ fn interactive_rollback() -> Result<(), GitNavigatorError> {
             .cmp(&Version::parse(&a.0).unwrap_or_else(|_| Version::new(0, 0, 0)))
     });
     
-    print_section_header("Select version to restore");
+    let mut version_list = String::new();
     for (i, (version, _)) in backups.iter().enumerate() {
-        println!("  {} {}", format!("[{}]", i + 1).bright_black(), format!("v{}", version).blue());
+        version_list.push_str(&format!("  {} {}\n", format!("[{}]", i + 1).bright_black(), format!("v{version}").blue()));
     }
+    
+    CommandTemplate::new()
+        .title("Select version to restore")
+        .body(version_list.trim_end())
+        .print();
     
     print!("\n{} ", format!("Enter selection (1-{}):", backups.len()).blue());
     io::stdout().flush().unwrap();

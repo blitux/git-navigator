@@ -5,6 +5,9 @@
 //!
 //! # Usage Example
 //! ```rust
+//! use git_navigator::core::CommandTemplate;
+//! 
+//! let table = "  [1] main\n  [2] feature-branch";
 //! CommandTemplate::new()
 //!     .title("Local Branches")
 //!     .body(table)

@@ -2,7 +2,6 @@ use crate::commands::status::execute_status;
 use crate::core::{
     command_init::IndexCommandInit,
     error::{GitNavigatorError, Result},
-    print_success,
     CommandTemplate,
 };
 
@@ -34,7 +33,7 @@ pub fn execute_reset(indices_args: Vec<String>) -> Result<()> {
 
     let file_word = if selected_files.len() == 1 { "file" } else { "files" };
     CommandTemplate::new()
-        .success(&format!(
+        .success(format!(
             "Successfully reset {} {} from git index.",
             selected_files.len(),
             file_word

@@ -56,14 +56,9 @@ pub use templates::{
 pub use colors::{
     format_file_status,
     get_aligned_status,
-    get_aligned_status_legacy,
     get_colored_path,
-    get_colored_path_legacy,
     get_legend_status,
-    get_legend_status_legacy,
     get_status_color_style,
-    // Legacy functions for backward compatibility during migration
-    get_status_color_style_legacy,
 };
 
 // === Output formatting ===

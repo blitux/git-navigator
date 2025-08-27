@@ -44,7 +44,7 @@ pub fn execute_diff(indices_args: Vec<String>) -> Result<()> {
             .join("\n");
         
         CommandTemplate::new()
-            .title(&format!("Showing diff for {} file(s):", files_to_diff.len()))
+            .title(format!("Showing diff for {} file(s):", files_to_diff.len()))
             .body(&file_list)
             .print();
     }

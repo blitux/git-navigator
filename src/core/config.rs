@@ -20,7 +20,7 @@ impl Default for RepositoryConfig {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 pub struct UpdateConfig {
     pub last_check: Option<chrono::DateTime<chrono::Utc>>,
     pub auto_check_enabled: bool,
@@ -79,12 +79,3 @@ impl InstallConfig {
     }
 }
 
-impl Default for UpdateConfig {
-    fn default() -> Self {
-        Self {
-            last_check: None,
-            auto_check_enabled: false,
-            skip_version: None,
-        }
-    }
-}

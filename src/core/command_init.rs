@@ -208,7 +208,7 @@ mod tests {
     fn test_initialize_no_indices() {
         // NOTE: This test has directory management issues where the temp directory
         // gets dropped while we're still using it as current directory
-        // TODO: Refactor to use proper directory isolation
+        // TODO: Consider using std::thread::spawn for directory isolation or mocking git detection
         let temp_dir = TempDir::new().unwrap();
         let original_dir = env::current_dir().unwrap();
 

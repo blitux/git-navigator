@@ -520,7 +520,7 @@ mod tests {
     fn test_load_files_cache_corrupted_json() -> Result<()> {
         // NOTE: This test has environment variable isolation issues when run in parallel
         // It should pass when run with --test-threads=1
-        // TODO: Refactor to avoid global environment state
+        // TODO: Consider using serial_test crate or refactoring cache system to accept custom directories
         let temp_dir = TempDir::new().map_err(|e| GitNavigatorError::Io(e))?;
         let repo_path = temp_dir.path().to_path_buf();
 
@@ -647,7 +647,7 @@ mod tests {
     fn test_load_files_cache_empty_files() -> Result<()> {
         // NOTE: This test has environment variable isolation issues when run in parallel
         // It should pass when run with --test-threads=1
-        // TODO: Refactor to avoid global environment state
+        // TODO: Consider using serial_test crate or refactoring cache system to accept custom directories
         let temp_dir = TempDir::new().map_err(|e| GitNavigatorError::Io(e))?;
         let repo_path = temp_dir.path().to_path_buf();
 
