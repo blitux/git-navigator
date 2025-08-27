@@ -19,6 +19,11 @@ pub fn execute_add(indices_args: Vec<String>) -> Result<()> {
         }
     }
 
+    // Check if arguments are filenames instead of indices
+    if contains_filenames(&indices_args) {
+        return execute_add_by_filenames(indices_args);
+    }
+
     // Initialize everything needed for this index-based command
     let context = match IndexCommandInit::initialize_with_messages(
         indices_args,
@@ -159,6 +164,85 @@ fn execute_add_folder(folder: &str) -> Result<()> {
     }
 
     print_success(&format!("Successfully added folder '{}' to git index.", folder));
+
+    // Show updated status
+    print_info("Updated status:");
+    execute_status()?;
+
+    Ok(())
+}
+
+/// Check if arguments contain filenames instead of indices
+/// Returns true if any argument looks like a filename (contains '.' or '/' or doesn't parse as number)
+fn contains_filenames(args: &[String]) -> bool {
+    args.iter().any(|arg| {
+        // Skip special cases that are handled elsewhere
+        if arg == "." || std::path::Path::new(arg).is_dir() {
+            return false;
+        }
+        
+        // If it contains a file extension or path separator, it's likely a filename
+        if arg.contains('.') && (arg.contains('/') || !arg.starts_with('.')) {
+            return true;
+        }
+        
+        // If it doesn't parse as a number or range, it might be a filename
+        if let Err(_) = crate::core::index_parser::IndexParser::parse(arg) {
+            return true;
+        }
+        
+        false
+    })
+}
+
+/// Add files by their filenames using git add command
+fn execute_add_by_filenames(filenames: Vec<String>) -> Result<()> {
+    use crate::core::git::GitRepo;
+    use std::env;
+
+    // Initialize git repository
+    let current_dir = env::current_dir()?;
+    let git_repo = GitRepo::open(&current_dir).map_err(|_| GitNavigatorError::NotInGitRepo)?;
+
+    // Validate that the files exist
+    for filename in &filenames {
+        let file_path = current_dir.join(filename);
+        if !file_path.exists() {
+            return Err(GitNavigatorError::custom_empty_files_error(format!(
+                "File '{}' does not exist",
+                filename
+            )));
+        }
+    }
+
+    // Execute git add command for each filename
+    let mut cmd = std::process::Command::new("git");
+    cmd.arg("add");
+    for filename in &filenames {
+        cmd.arg(filename);
+    }
+    
+    let workdir = git_repo.get_repository()
+        .workdir()
+        .ok_or(GitNavigatorError::custom_empty_files_error("Repository has no working directory"))?;
+    
+    cmd.current_dir(workdir);
+    let output = cmd.output().map_err(GitNavigatorError::Io)?;
+
+    if !output.status.success() {
+        let error_msg = String::from_utf8_lossy(&output.stderr);
+        return Err(GitNavigatorError::custom_empty_files_error(format!(
+            "git add failed: {}",
+            error_msg.trim()
+        )));
+    }
+
+    let file_word = if filenames.len() == 1 { "file" } else { "files" };
+    print_success(&format!(
+        "Successfully added {} {} to git index.",
+        filenames.len(),
+        file_word
+    ));
 
     // Show updated status
     print_info("Updated status:");
