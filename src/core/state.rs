@@ -18,6 +18,7 @@ use crate::core::git_status::GitStatus;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::time::SystemTime;
+use tabled::Tabled;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct FileEntry {
@@ -27,11 +28,37 @@ pub struct FileEntry {
     pub staged: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Tabled)]
 pub struct BranchEntry {
-    pub index: usize,
+    #[tabled(display_with = "Self::display_index")]
+    pub index: String,
+    #[tabled(display_with = "Self::display_name")]
     pub name: String,
+    #[tabled(skip)]
     pub is_current: bool,
+    #[tabled(display_with = "Self::display_tracking")]
+    pub tracking_info: String,
+    #[tabled(skip)]
+    pub is_remote: bool,
+}
+
+impl BranchEntry {
+    fn display_index(field: &str) -> String {
+        use colored::*;
+        format!("{}{}{}", 
+                "[".bright_black(), 
+                if field == "*" { "*".white() } else { field.white() }, 
+                "]".bright_black())
+    }
+    
+    fn display_name(field: &str) -> String {
+        use colored::*;
+        field.blue().to_string()
+    }
+    
+    fn display_tracking(field: &str) -> String {
+        field.to_string()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

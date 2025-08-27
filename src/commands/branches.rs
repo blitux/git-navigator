@@ -1,15 +1,16 @@
 use crate::core::{
     error::{GitNavigatorError, Result},
     git::GitRepo,
-    print_info, print_section_header,
+    print_info,
     state::{BranchEntry, StateCache},
 };
 use colored::*;
 use std::env;
 use std::fs;
 use std::path::PathBuf;
+use tabled::{Table, settings::{Style, Remove, object::Rows}};
 
-pub fn execute_branches(branch_index: Option<usize>) -> Result<()> {
+pub fn execute_branches(show_remote: bool, branch_index: Option<usize>) -> Result<()> {
     // Check if we're in a git repository
     let current_dir = env::current_dir()?;
     let git_repo = GitRepo::open(&current_dir).map_err(|_| GitNavigatorError::NotInGitRepo)?;
@@ -19,86 +20,59 @@ pub fn execute_branches(branch_index: Option<usize>) -> Result<()> {
         checkout_branch_by_index(&git_repo, index)
     } else {
         // List branches with indices
-        list_branches(&git_repo)
+        list_branches(&git_repo, show_remote)
     }
 }
 
-fn list_branches(git_repo: &GitRepo) -> Result<()> {
-    // Get all local branches
-    let branches = get_local_branches(git_repo)?;
+fn list_branches(git_repo: &GitRepo, show_remote: bool) -> Result<()> {
+    let branches = if show_remote {
+        get_remote_branches(git_repo)?
+    } else {
+        get_local_branches_with_tracking(git_repo)?
+    };
 
     if branches.is_empty() {
-        print_info("No branches found. Make your first commit to create one.");
+        if show_remote {
+            print_info("No remote branches found. Run `git fetch` to update remotes.");
+        } else {
+            print_info("No branches found. Make your first commit to create one.");
+        }
         return Ok(());
     }
 
-    // Display section header using unified formatter
-    print_section_header("Local Branches");
-
-    // Display branches with proper formatting and colors
-    for branch in &branches {
-        if branch.is_current {
-            // Current branch format: [*] branch-name (+ahead/-behind)
-            let ahead_behind_text = match git_repo.get_ahead_behind() {
-                Ok(Some((ahead, behind))) => {
-                    if ahead > 0 && behind > 0 {
-                        format!(
-                            " {}+{}/−{}{}",
-                            "(".bright_black(),
-                            ahead.to_string().white(),
-                            behind.to_string().white(),
-                            ")".bright_black()
-                        )
-                    } else if ahead > 0 {
-                        format!(
-                            " {}+{}{}",
-                            "(".bright_black(),
-                            ahead.to_string().white(),
-                            ")".bright_black()
-                        )
-                    } else if behind > 0 {
-                        format!(
-                            " {}-{}{}",
-                            "(".bright_black(),
-                            behind.to_string().white(),
-                            ")".bright_black()
-                        )
-                    } else {
-                        String::new()
-                    }
-                }
-                Ok(None) => String::new(),
-                Err(_) => String::new(),
-            };
-
-            println!(
-                "{}{}{} {}{}",
-                "[".bright_black(),
-                "*".white(),
-                "]".bright_black(),
-                branch.name.blue(),
-                ahead_behind_text
-            );
-        } else {
-            // Other branches format: [index] branch-name
-            println!(
-                "{}{}{} {}",
-                "[".bright_black(),
-                branch.index.to_string().white(),
-                "]".bright_black(),
-                branch.name.blue()
-            );
-        }
+    // Follow template: \n(title/header)\n(body)\n(help)\n
+    println!(); // Opening whitespace
+    
+    // Show title/header
+    if show_remote {
+        println!("{}", "Remote Branches".blue());
+    } else {
+        println!("{}", "Local Branches".blue());
     }
+    println!(); // Spacing after title
+    
+    // Create table with tabled - no borders, no headers
+    let mut table = Table::new(&branches);
+    table.with(Style::blank()); // No borders
+    table.with(Remove::row(Rows::first())); // Remove header row
 
-    // Add spacing after branch list
-    println!();
+    println!("{}", table);
+    
+    println!(); // Spacing before help
+    
+    // Show help message in bright_black
+    if show_remote {
+        println!("{}", "Use gb <index> to checkout or gb without --remote for local branches.".bright_black());
+    } else {
+        println!("{}", "Use gb --remote to list remote branches.".bright_black());
+    }
+    
+    println!(); // Closing whitespace
 
-    // Save to cache for branch checkout command
+    // Save to cache for branch checkout command (only local branches)
     #[cfg(not(test))]
-    {
+    if !show_remote {
         if let Err(e) = save_branches_cache(&branches, git_repo.get_repo_path()) {
-            // Log cache errors but don't fail the command
             log::warn!("Branch cache save failed: {e}");
             #[cfg(debug_assertions)]
             eprintln!("Warning: Branch cache save failed: {e}");
@@ -124,10 +98,12 @@ fn checkout_branch_by_index(git_repo: &GitRepo, index: usize) -> Result<()> {
         ));
     }
 
-    // Find branch by index
+    // Find branch by index - parse the index string directly
     let target_branch = branches
         .iter()
-        .find(|branch| branch.index == index)
+        .find(|branch| {
+            branch.index.parse::<usize>().ok() == Some(index)
+        })
         .ok_or_else(|| {
             GitNavigatorError::custom_empty_files_error(format!(
                 "Branch index {index} not found"
@@ -167,7 +143,7 @@ fn checkout_branch_by_index(git_repo: &GitRepo, index: usize) -> Result<()> {
     }
 }
 
-fn get_local_branches(git_repo: &GitRepo) -> Result<Vec<BranchEntry>> {
+fn get_local_branches_with_tracking(git_repo: &GitRepo) -> Result<Vec<BranchEntry>> {
     let repo = git_repo.get_repository();
     let mut branches = Vec::new();
 
@@ -176,18 +152,18 @@ fn get_local_branches(git_repo: &GitRepo) -> Result<Vec<BranchEntry>> {
         .get_current_branch()
         .unwrap_or_else(|_| "unknown".to_string());
 
-    // List all local branches
+    // List all local branches with tracking information
     let branch_iter = repo.branches(Some(git2::BranchType::Local)).map_err(|e| {
         GitNavigatorError::custom_empty_files_error(format!("Failed to list branches: {e}"))
     })?;
 
-    let mut branch_names = Vec::new();
-    for branch in branch_iter {
-        let branch = branch.map_err(|e| {
+    let mut branch_data = Vec::new();
+    for branch_result in branch_iter {
+        let (branch, _) = branch_result.map_err(|e| {
             GitNavigatorError::custom_empty_files_error(format!("Failed to read branch: {e}"))
         })?;
+        
         let name = branch
-            .0
             .name()
             .map_err(|e| {
                 GitNavigatorError::custom_empty_files_error(format!(
@@ -198,32 +174,98 @@ fn get_local_branches(git_repo: &GitRepo) -> Result<Vec<BranchEntry>> {
                 GitNavigatorError::custom_empty_files_error("Branch name is not valid UTF-8")
             })?
             .to_string();
-        branch_names.push(name);
+
+        // Get tracking branch information
+        let tracking_branch = branch.upstream()
+            .ok()
+            .and_then(|upstream| {
+                upstream.name().ok().flatten().map(|s| s.to_string())
+            });
+
+        branch_data.push((name, tracking_branch));
     }
 
-    // Sort branch names for consistent ordering
-    branch_names.sort();
+    // Sort by branch name for consistent ordering
+    branch_data.sort_by(|a, b| a.0.cmp(&b.0));
 
-    // Add current branch first (not numbered)
-    if branch_names.contains(&current_branch) {
+    // Add current branch first with special formatting
+    if let Some((_, tracking)) = branch_data.iter().find(|(name, _)| name == &current_branch) {
         branches.push(BranchEntry {
-            index: 0, // Not used for current branch
+            index: "*".to_string(), // Special marker for current branch
             name: current_branch.clone(),
             is_current: true,
+            tracking_info: tracking.clone().unwrap_or_else(|| "(no upstream)".to_string()),
+            is_remote: false,
         });
     }
 
     // Add other branches with indices
     let mut index = 1;
-    for branch_name in branch_names {
+    for (branch_name, tracking) in branch_data {
         if branch_name != current_branch {
             branches.push(BranchEntry {
-                index,
+                index: index.to_string(),
                 name: branch_name,
                 is_current: false,
+                tracking_info: tracking.unwrap_or_else(|| "(no upstream)".to_string()),
+                is_remote: false,
             });
             index += 1;
         }
+    }
+
+    Ok(branches)
+}
+
+fn get_remote_branches(git_repo: &GitRepo) -> Result<Vec<BranchEntry>> {
+    let repo = git_repo.get_repository();
+    let mut branches = Vec::new();
+
+    // List all remote branches
+    let branch_iter = repo.branches(Some(git2::BranchType::Remote)).map_err(|e| {
+        GitNavigatorError::custom_empty_files_error(format!("Failed to list remote branches: {e}"))
+    })?;
+
+    let mut branch_data = Vec::new();
+    for branch_result in branch_iter {
+        let (branch, _) = branch_result.map_err(|e| {
+            GitNavigatorError::custom_empty_files_error(format!("Failed to read remote branch: {e}"))
+        })?;
+        
+        let full_name = branch
+            .name()
+            .map_err(|e| {
+                GitNavigatorError::custom_empty_files_error(format!(
+                    "Failed to get remote branch name: {e}"
+                ))
+            })?
+            .ok_or_else(|| {
+                GitNavigatorError::custom_empty_files_error("Remote branch name is not valid UTF-8")
+            })?
+            .to_string();
+
+        // Parse remote name from full branch name (e.g., "origin/main" -> remote: "origin")
+        let remote_name = if let Some(slash_pos) = full_name.find('/') {
+            full_name[..slash_pos].to_string()
+        } else {
+            "unknown".to_string()
+        };
+
+        branch_data.push((full_name, remote_name));
+    }
+
+    // Sort by branch name for consistent ordering
+    branch_data.sort_by(|a, b| a.0.cmp(&b.0));
+
+    // Add remote branches with indices
+    for (index, (branch_name, remote_name)) in branch_data.into_iter().enumerate() {
+        branches.push(BranchEntry {
+            index: (index + 1).to_string(), // Start from 1 for remote branches
+            name: branch_name,
+            is_current: false,
+            tracking_info: remote_name, // Store remote name for remote branches
+            is_remote: true,
+        });
     }
 
     Ok(branches)

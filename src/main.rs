@@ -48,6 +48,9 @@ enum Commands {
     },
     /// Show numbered branches or switch to a branch (gb alias)
     Branches {
+        /// Show remote branches instead of local branches
+        #[arg(long)]
+        remote: bool,
         /// Branch index to checkout (if provided)
         index: Option<usize>,
     },
@@ -128,8 +131,8 @@ fn main() -> Result<()> {
                 std::process::exit(1);
             }
         }
-        Commands::Branches { index } => {
-            if let Err(e) = execute_branches(index) {
+        Commands::Branches { remote, index } => {
+            if let Err(e) = execute_branches(remote, index) {
                 if let GitNavigatorError::NotInGitRepo = e {
                     print_error("Not in a git repository");
                 } else {
