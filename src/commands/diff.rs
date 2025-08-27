@@ -6,6 +6,7 @@ use crate::core::{
     output::print_error,
     print_error_with_structured_usage,
     state::FileEntry,
+    CommandTemplate,
 };
 use colored::*;
 
@@ -36,11 +37,16 @@ pub fn execute_diff(indices_args: Vec<String>) -> Result<()> {
         .all(|f| f.status == GitStatus::Untracked);
 
     if !all_untracked {
-        println!("Showing diff for {} file(s):", files_to_diff.len());
-        for file in &files_to_diff {
-            println!("  [{}] {}", file.index, file.path.display());
-        }
-        println!();
+        let file_list = files_to_diff
+            .iter()
+            .map(|file| format!("  [{}] {}", file.index, file.path.display()))
+            .collect::<Vec<_>>()
+            .join("\n");
+        
+        CommandTemplate::new()
+            .title(&format!("Showing diff for {} file(s):", files_to_diff.len()))
+            .body(&file_list)
+            .print();
     }
 
     // Show diff for each file

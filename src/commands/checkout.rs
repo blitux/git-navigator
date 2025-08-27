@@ -4,6 +4,7 @@ use crate::core::{
     error::{GitNavigatorError, Result},
     git::GitRepo,
     print_error, print_error_with_structured_usage, print_info, print_success,
+    CommandTemplate,
 };
 
 pub fn execute_checkout_with_flags(create_branch: bool, indices_args: Vec<String>) -> Result<()> {
@@ -134,20 +135,19 @@ fn checkout_files_by_indices(indices_args: Vec<String>) -> Result<()> {
     }
 
     // Checkout files using git
-    match context.git_repo.checkout_files(&paths_to_checkout) {
-        Ok(()) => {
-            print_success(&format!(
-                "Successfully checked out {} file(s).",
-                selected_files.len()
-            ));
-        }
-        Err(e) => {
-            return Err(e);
-        }
-    }
+    context.git_repo.checkout_files(&paths_to_checkout)?;
+
+    let file_word = if selected_files.len() == 1 { "file" } else { "files" };
+    CommandTemplate::new()
+        .success(&format!(
+            "Successfully checked out {} {}.",
+            selected_files.len(),
+            file_word
+        ))
+        .print();
 
     // Show updated status and update cache for smooth workflow
-    print_info("Updated status:");
+    println!("Updated status:");
     let updated_files = context.git_repo.get_status()?;
     print_files_only(&updated_files);
 
@@ -167,19 +167,13 @@ fn checkout_files_by_indices(indices_args: Vec<String>) -> Result<()> {
 fn checkout_branch_by_name(branch_name: &str) -> Result<()> {
     let git_repo = GitRepo::open(".")?;
 
-    match git_repo.checkout_branch(branch_name) {
-        Ok(()) => {
-            print_success(&format!(
-                "Successfully switched to branch '{branch_name}'"
-            ));
-        }
-        Err(e) => {
-            print_error(&format!(
-                "Failed to checkout branch '{branch_name}': {e}"
-            ));
-            return Err(e);
-        }
-    }
+    git_repo.checkout_branch(branch_name)?;
+    
+    CommandTemplate::new()
+        .success(&format!(
+            "Successfully switched to branch '{branch_name}'"
+        ))
+        .print();
 
     Ok(())
 }
@@ -187,17 +181,13 @@ fn checkout_branch_by_name(branch_name: &str) -> Result<()> {
 fn create_and_checkout_branch(branch_name: &str) -> Result<()> {
     let git_repo = GitRepo::open(".")?;
 
-    match git_repo.create_branch(branch_name) {
-        Ok(()) => {
-            print_success(&format!(
-                "Successfully created and switched to branch '{branch_name}'"
-            ));
-        }
-        Err(e) => {
-            print_error(&format!("Failed to create branch '{branch_name}': {e}"));
-            return Err(e);
-        }
-    }
+    git_repo.create_branch(branch_name)?;
+    
+    CommandTemplate::new()
+        .success(&format!(
+            "Successfully created and switched to branch '{branch_name}'"
+        ))
+        .print();
 
     Ok(())
 }

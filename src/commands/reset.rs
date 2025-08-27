@@ -3,6 +3,7 @@ use crate::core::{
     command_init::IndexCommandInit,
     error::{GitNavigatorError, Result},
     print_success,
+    CommandTemplate,
 };
 
 pub fn execute_reset(indices_args: Vec<String>) -> Result<()> {
@@ -29,17 +30,16 @@ pub fn execute_reset(indices_args: Vec<String>) -> Result<()> {
     }
 
     // Reset files in git index
-    match context.git_repo.reset_files(&paths_to_reset) {
-        Ok(()) => {
-            print_success(&format!(
-                "Successfully reset {} file(s) from git index.",
-                selected_files.len()
-            ));
-        }
-        Err(e) => {
-            return Err(e);
-        }
-    }
+    context.git_repo.reset_files(&paths_to_reset)?;
+
+    let file_word = if selected_files.len() == 1 { "file" } else { "files" };
+    CommandTemplate::new()
+        .success(&format!(
+            "Successfully reset {} {} from git index.",
+            selected_files.len(),
+            file_word
+        ))
+        .print();
 
     // Show updated status
     println!("Updated status:");

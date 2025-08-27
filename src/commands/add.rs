@@ -3,6 +3,7 @@ use crate::core::{
     command_init::IndexCommandInit,
     error::{GitNavigatorError, Result},
     print_error, print_error_with_structured_usage, print_info, print_success,
+    CommandTemplate,
 };
 
 pub fn execute_add(indices_args: Vec<String>) -> Result<()> {
@@ -67,20 +68,18 @@ pub fn execute_add(indices_args: Vec<String>) -> Result<()> {
     }
 
     // Add files to git index
-    match context.git_repo.add_files(&paths_to_add) {
-        Ok(()) => {
-            print_success(&format!(
-                "Successfully added {} file(s) to git index.",
-                selected_files.len()
-            ));
-        }
-        Err(e) => {
-            return Err(e);
-        }
-    }
+    context.git_repo.add_files(&paths_to_add)?;
 
-    // Show updated status and update cache for smooth workflow
-    print_info("Updated status:");
+    // Show success message using template
+    let file_word = if selected_files.len() == 1 { "file" } else { "files" };
+    let success_msg = format!("Successfully added {} {} to git index.", selected_files.len(), file_word);
+    
+    CommandTemplate::new()
+        .success(&success_msg)
+        .print();
+
+    // Show updated status
+    println!("Updated status:");
     let updated_files = context.git_repo.get_status()?;
     print_files_only(&updated_files);
 
@@ -96,6 +95,7 @@ pub fn execute_add(indices_args: Vec<String>) -> Result<()> {
 
     Ok(())
 }
+
 
 /// Add all files to the git index using `git add .`
 fn execute_add_all() -> Result<()> {
@@ -125,10 +125,12 @@ fn execute_add_all() -> Result<()> {
         )));
     }
 
-    print_success("Successfully added all files to git index.");
+    CommandTemplate::new()
+        .success("Successfully added all files to git index.")
+        .print();
 
     // Show updated status
-    print_info("Updated status:");
+    println!("Updated status:");
     execute_status()?;
 
     Ok(())
@@ -163,10 +165,12 @@ fn execute_add_folder(folder: &str) -> Result<()> {
         )));
     }
 
-    print_success(&format!("Successfully added folder '{}' to git index.", folder));
+    CommandTemplate::new()
+        .success(&format!("Successfully added folder '{}' to git index.", folder))
+        .print();
 
     // Show updated status
-    print_info("Updated status:");
+    println!("Updated status:");
     execute_status()?;
 
     Ok(())
@@ -238,14 +242,16 @@ fn execute_add_by_filenames(filenames: Vec<String>) -> Result<()> {
     }
 
     let file_word = if filenames.len() == 1 { "file" } else { "files" };
-    print_success(&format!(
-        "Successfully added {} {} to git index.",
-        filenames.len(),
-        file_word
-    ));
+    CommandTemplate::new()
+        .success(&format!(
+            "Successfully added {} {} to git index.",
+            filenames.len(),
+            file_word
+        ))
+        .print();
 
     // Show updated status
-    print_info("Updated status:");
+    println!("Updated status:");
     execute_status()?;
 
     Ok(())
