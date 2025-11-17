@@ -30,29 +30,29 @@ pub struct UpdateArgs {
     pub verbose: bool,
 }
 
-/// Maps compile-time target to GitHub release asset name
-/// This resolves the mismatch between Rust target names and release asset names
-fn get_asset_name_for_target() -> &'static str {
-    // Use cfg! macros to detect the target at compile time
+/// Returns a simple target string that matches our GitHub release asset naming
+/// The self_update crate checks if asset.name.contains(target), so we just need
+/// a substring that uniquely identifies the right asset for this platform
+fn get_target_string() -> &'static str {
     #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
-    return "git-navigator-windows-x64.exe";
-    
+    return "windows-x64";
+
     #[cfg(all(target_os = "linux", target_arch = "x86_64", target_env = "gnu"))]
-    return "git-navigator-linux-x64";
-    
+    return "linux-x64";
+
     #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
-    return "git-navigator-linux-arm64";
-    
+    return "linux-arm64";
+
     #[cfg(all(target_os = "linux", target_arch = "x86_64", target_env = "musl"))]
-    return "git-navigator-linux-musl-x64";
-    
+    return "linux-musl-x64";
+
     #[cfg(all(target_os = "macos", target_arch = "x86_64"))]
-    return "git-navigator-macos-x64";
-    
+    return "macos-x64";
+
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-    return "git-navigator-macos-arm64";
-    
-    // Fallback - shouldn't happen with current supported targets
+    return "macos-arm64";
+
+    // Fallback - use OS name
     #[cfg(not(any(
         all(target_os = "windows", target_arch = "x86_64"),
         all(target_os = "linux", target_arch = "x86_64", target_env = "gnu"),
@@ -61,7 +61,7 @@ fn get_asset_name_for_target() -> &'static str {
         all(target_os = "macos", target_arch = "x86_64"),
         all(target_os = "macos", target_arch = "aarch64")
     )))]
-    return "git-navigator";
+    return std::env::consts::OS;
 }
 pub fn execute_update(args: UpdateArgs) -> Result<(), GitNavigatorError> {
     let current_version = env!("CARGO_PKG_VERSION");
@@ -90,7 +90,8 @@ pub fn execute_update(args: UpdateArgs) -> Result<(), GitNavigatorError> {
         let latest = self_update::backends::github::Update::configure()
             .repo_owner(&config.repository.owner)
             .repo_name(&config.repository.name)
-            .bin_name(get_asset_name_for_target())
+            .bin_name(&config.repository.bin_name)
+            .target(get_target_string())
             .show_download_progress(true)
             .show_output(args.verbose)
             .current_version(current_version)
@@ -103,7 +104,8 @@ pub fn execute_update(args: UpdateArgs) -> Result<(), GitNavigatorError> {
     let latest = self_update::backends::github::Update::configure()
         .repo_owner(&config.repository.owner)
         .repo_name(&config.repository.name)
-        .bin_name(get_asset_name_for_target())
+        .bin_name(&config.repository.bin_name)
+        .target(get_target_string())
         .show_download_progress(true)
         .show_output(args.verbose)
         .current_version(current_version)
@@ -124,7 +126,8 @@ pub fn execute_update(args: UpdateArgs) -> Result<(), GitNavigatorError> {
     let status = self_update::backends::github::Update::configure()
         .repo_owner(&config.repository.owner)
         .repo_name(&config.repository.name)
-        .bin_name(get_asset_name_for_target())
+        .bin_name(&config.repository.bin_name)
+        .target(get_target_string())
         .show_download_progress(true)
         .show_output(args.verbose)
         .current_version(current_version)
