@@ -23,6 +23,44 @@ impl TestRepo {
     pub fn path(&self) -> &Path {
         &self.path
     }
+
+    /// Get the working directory path
+    pub fn workdir(&self) -> &Path {
+        &self.path
+    }
+
+    /// Stage a file in the repository
+    pub fn stage_file(&self, filename: &str) {
+        std::process::Command::new("git")
+            .args(["add", filename])
+            .current_dir(&self.path)
+            .output()
+            .expect("Failed to stage file");
+    }
+
+    /// Create a commit with the specified message
+    pub fn create_commit(&self, message: &str) {
+        std::process::Command::new("git")
+            .args(["commit", "-m", message])
+            .current_dir(&self.path)
+            .output()
+            .expect("Failed to create commit");
+    }
+
+    /// Get git status output as string
+    pub fn get_status_output(&self) -> String {
+        let output = std::process::Command::new("git")
+            .args(["status", "--short"])
+            .current_dir(&self.path)
+            .output()
+            .expect("Failed to get status");
+        String::from_utf8_lossy(&output.stdout).to_string()
+    }
+
+    /// Create a new test repository
+    pub fn new() -> Self {
+        setup_test_repo().expect("Failed to setup test repo")
+    }
 }
 
 /// Sets up a fresh git repository for testing

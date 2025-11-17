@@ -1,17 +1,50 @@
+#[cfg(not(test))]
+use crate::commands::status::{execute_status, save_files_cache};
+#[cfg(test)]
 use crate::commands::status::execute_status;
 use crate::core::{
     command_init::IndexCommandInit,
     error::{GitNavigatorError, Result},
+    print_error_with_structured_usage,
     CommandTemplate,
 };
 
 pub fn execute_reset(indices_args: Vec<String>) -> Result<()> {
+    // Check for special case: reset all staged files with "."
+    if indices_args.len() == 1 && indices_args[0] == "." {
+        return execute_reset_all();
+    }
+
+    // Check for special case: reset folder
+    if indices_args.len() == 1 {
+        let arg = &indices_args[0];
+        if std::path::Path::new(arg).is_dir() {
+            return execute_reset_folder(arg);
+        }
+    }
+
+    // Check if arguments are filenames instead of indices
+    if contains_filenames(&indices_args) {
+        return execute_reset_by_paths(indices_args);
+    }
+
     // Initialize everything needed for this index-based command
-    let context = IndexCommandInit::initialize_with_messages(
+    let context = match IndexCommandInit::initialize_with_messages(
         indices_args,
         "Cannot load file cache",
         "No files available to reset",
-    )?;
+    ) {
+        Ok(context) => context,
+        Err(GitNavigatorError::NoIndicesProvided) => {
+            print_error_with_structured_usage(
+                "No file indices provided",
+                &["grs <index>...", "grs .", "grs <folder>"],
+                &[("-h, --help", "Show this help message")],
+            );
+            return Err(GitNavigatorError::NoIndicesProvided);
+        }
+        Err(e) => return Err(e),
+    };
 
     // Get the selected files and prepare them for resetting
     let selected_files = context.get_selected_files();
@@ -36,6 +69,174 @@ pub fn execute_reset(indices_args: Vec<String>) -> Result<()> {
         .success(format!(
             "Successfully reset {} {} from git index.",
             selected_files.len(),
+            file_word
+        ))
+        .print();
+
+    // Show updated status
+    println!("Updated status:");
+    #[cfg(not(test))]
+    let updated_files = context.git_repo.get_status()?;
+    execute_status()?;
+
+    // Update cache with current status to maintain smooth workflow
+    #[cfg(not(test))]
+    {
+        if let Err(e) = save_files_cache(&updated_files, context.git_repo.get_repo_path()) {
+            log::warn!("Cache update failed (command succeeded): {e}");
+            #[cfg(debug_assertions)]
+            eprintln!("Warning: Cache update failed: {e}");
+        }
+    }
+
+    Ok(())
+}
+
+/// Reset all staged files using `git reset`
+fn execute_reset_all() -> Result<()> {
+    use crate::core::git::GitRepo;
+    use std::env;
+
+    // Initialize git repository
+    let current_dir = env::current_dir()?;
+    let git_repo = GitRepo::open(&current_dir).map_err(|_| GitNavigatorError::NotInGitRepo)?;
+
+    // Execute `git reset` command (without HEAD, resets all staged files)
+    let mut cmd = std::process::Command::new("git");
+    cmd.arg("reset");
+
+    let workdir = git_repo.get_repository()
+        .workdir()
+        .ok_or(GitNavigatorError::custom_empty_files_error("Repository has no working directory"))?;
+
+    cmd.current_dir(workdir);
+    let output = cmd.output().map_err(GitNavigatorError::Io)?;
+
+    if !output.status.success() {
+        let error_msg = String::from_utf8_lossy(&output.stderr);
+        return Err(GitNavigatorError::custom_empty_files_error(format!(
+            "git reset failed: {}",
+            error_msg.trim()
+        )));
+    }
+
+    CommandTemplate::new()
+        .success("Successfully reset all staged files from git index.")
+        .print();
+
+    // Show updated status
+    println!("Updated status:");
+    execute_status()?;
+
+    Ok(())
+}
+
+/// Reset all files in a specific folder using `git reset HEAD <folder>`
+fn execute_reset_folder(folder: &str) -> Result<()> {
+    use crate::core::git::GitRepo;
+    use std::env;
+
+    // Initialize git repository
+    let current_dir = env::current_dir()?;
+    let git_repo = GitRepo::open(&current_dir).map_err(|_| GitNavigatorError::NotInGitRepo)?;
+
+    // Execute `git reset HEAD <folder>` command
+    let mut cmd = std::process::Command::new("git");
+    cmd.arg("reset").arg("HEAD").arg("--").arg(folder);
+
+    let workdir = git_repo.get_repository()
+        .workdir()
+        .ok_or(GitNavigatorError::custom_empty_files_error("Repository has no working directory"))?;
+
+    cmd.current_dir(workdir);
+    let output = cmd.output().map_err(GitNavigatorError::Io)?;
+
+    if !output.status.success() {
+        let error_msg = String::from_utf8_lossy(&output.stderr);
+        return Err(GitNavigatorError::custom_empty_files_error(format!(
+            "git reset {} failed: {}",
+            folder,
+            error_msg.trim()
+        )));
+    }
+
+    CommandTemplate::new()
+        .success(format!("Successfully reset folder '{folder}' from git index."))
+        .print();
+
+    // Show updated status
+    println!("Updated status:");
+    execute_status()?;
+
+    Ok(())
+}
+
+/// Check if arguments contain filenames instead of indices
+/// Returns true if any argument looks like a filename (contains '.' or '/' or doesn't parse as number)
+fn contains_filenames(args: &[String]) -> bool {
+    args.iter().any(|arg| {
+        // Skip special cases that are handled elsewhere
+        if arg == "." || std::path::Path::new(arg).is_dir() {
+            return false;
+        }
+
+        // If it contains a file extension or path separator, it's likely a filename
+        if arg.contains('.') && (arg.contains('/') || !arg.starts_with('.')) {
+            return true;
+        }
+
+        // If it doesn't parse as a number or range, it might be a filename
+        if crate::core::index_parser::IndexParser::parse(arg).is_err() {
+            return true;
+        }
+
+        false
+    })
+}
+
+/// Reset files by their filenames using git reset command
+fn execute_reset_by_paths(paths: Vec<String>) -> Result<()> {
+    use crate::core::git::GitRepo;
+    use std::env;
+
+    // Initialize git repository
+    let current_dir = env::current_dir()?;
+    let git_repo = GitRepo::open(&current_dir).map_err(|_| GitNavigatorError::NotInGitRepo)?;
+
+    // Validate that the files exist (they might be staged deletions, so we don't strictly require existence)
+    // Just check that they're valid paths
+    for path in &paths {
+        let _file_path = current_dir.join(path);
+        // Note: We don't check existence because the file might be deleted and staged
+    }
+
+    // Execute git reset command for each path
+    let mut cmd = std::process::Command::new("git");
+    cmd.arg("reset").arg("HEAD").arg("--");
+    for path in &paths {
+        cmd.arg(path);
+    }
+
+    let workdir = git_repo.get_repository()
+        .workdir()
+        .ok_or(GitNavigatorError::custom_empty_files_error("Repository has no working directory"))?;
+
+    cmd.current_dir(workdir);
+    let output = cmd.output().map_err(GitNavigatorError::Io)?;
+
+    if !output.status.success() {
+        let error_msg = String::from_utf8_lossy(&output.stderr);
+        return Err(GitNavigatorError::custom_empty_files_error(format!(
+            "git reset failed: {}",
+            error_msg.trim()
+        )));
+    }
+
+    let file_word = if paths.len() == 1 { "file" } else { "files" };
+    CommandTemplate::new()
+        .success(format!(
+            "Successfully reset {} {} from git index.",
+            paths.len(),
             file_word
         ))
         .print();
