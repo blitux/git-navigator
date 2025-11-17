@@ -248,6 +248,15 @@ impl AliasManager {
         &self.config_path
     }
 
+    /// Check if a line is a git-navigator alias marker (supports old formats)
+    fn is_alias_marker(line: &str) -> bool {
+        let line = line.trim();
+        line == ALIAS_MARKER
+            || line.starts_with("# Git Navigator aliases -")
+            || line == "# Git Navigator aliases - Cleaner, faster, leaner than SCM Breeze"
+            || line == "# Git Navigator aliases - Clean, lean and fast git productivity tool"
+    }
+
     /// Read current aliases from config file
     pub fn read_aliases(&self) -> Result<HashMap<String, String>> {
         if !self.config_path.exists() {
@@ -259,7 +268,7 @@ impl AliasManager {
         let mut in_block = false;
 
         for line in content.lines() {
-            if line.trim() == ALIAS_MARKER {
+            if Self::is_alias_marker(line) {
                 in_block = true;
                 continue;
             }
@@ -344,16 +353,17 @@ impl AliasManager {
         Ok(comparisons)
     }
 
-    /// Replace existing alias block in content
+    /// Replace existing alias block in content (handles old marker formats)
     fn replace_alias_block(&self, content: &str, new_lines: &[String]) -> String {
         let mut result = Vec::new();
         let mut in_block = false;
         let mut block_replaced = false;
 
         for line in content.lines() {
-            if line.trim() == ALIAS_MARKER {
+            // Check for any old or new marker format
+            if Self::is_alias_marker(line) {
                 if !block_replaced {
-                    // Insert new alias block
+                    // Insert new alias block with new marker
                     for alias_line in new_lines {
                         result.push(alias_line.clone());
                     }
