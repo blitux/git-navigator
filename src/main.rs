@@ -79,6 +79,16 @@ enum Commands {
         #[command(flatten)]
         args: rollback::RollbackArgs,
     },
+    /// Copy files by index (wrapper for cp)
+    Copy {
+        /// Arguments: indices and/or paths (e.g., "1 3-5 /dest")
+        args: Vec<String>,
+    },
+    /// Remove files by index (wrapper for rm)
+    Remove {
+        /// Arguments: indices and/or paths (e.g., "1 3-5")
+        args: Vec<String>,
+    },
 }
 
 fn main() -> Result<()> {
@@ -135,6 +145,12 @@ fn main() -> Result<()> {
                 print_error(&e.to_string());
                 std::process::exit(1);
             }
+        }
+        Commands::Copy { args } => {
+            handle_command_error(execute_copy(args));
+        }
+        Commands::Remove { args } => {
+            handle_command_error(execute_remove(args));
         }
     }
 
