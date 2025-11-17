@@ -142,14 +142,91 @@ setup_path() {
     fi
 }
 
-# Setup shell aliases using git-navigator alias command
+# Setup shell aliases
 setup_aliases() {
     echo "Setting up git-navigator aliases..."
-    if command -v git-navigator >/dev/null 2>&1; then
-        git-navigator alias --update
+    local config_file=""
+    case "$SHELL" in
+        */bash) config_file="$HOME/.bashrc" ;;
+        */zsh) config_file="$HOME/.zshrc" ;;
+        */fish) config_file="$HOME/.config/fish/config.fish" ;;
+        *) config_file="$HOME/.profile" ;;
+    esac
+
+    # Define all aliases (must match exactly what we write)
+    local aliases=(
+        'alias gs="git-navigator status"'
+        'alias ga="git-navigator add"'
+        'alias gd="git-navigator diff"'
+        'alias grs="git-navigator reset"'
+        'alias gco="git-navigator checkout"'
+        'alias gb="git-navigator branches"'
+        'alias cp="git-navigator copy"'
+        'alias rm="git-navigator remove"'
+        'alias gcb="git-navigator checkout-branch"'
+        "alias gl=\"git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit\""
+    )
+
+    # Check if marker comment exists
+    if grep -q "# Git Navigator aliases" "$config_file" 2>/dev/null; then
+        echo "Updating existing aliases in $config_file..."
+
+        # Create temp file with new aliases
+        local temp_file=$(mktemp)
+        local in_alias_block=false
+
+        # Read config file and replace alias block
+        while IFS= read -r line || [[ -n "$line" ]]; then
+            if [[ "$line" == "# Git Navigator aliases" ]]; then
+                # Start of alias block - write marker and all new aliases
+                echo "# Git Navigator aliases" >> "$temp_file"
+                for alias_line in "${aliases[@]}"; do
+                    echo "$alias_line" >> "$temp_file"
+                done
+                in_alias_block=true
+            elif [[ "$in_alias_block" == true ]]; then
+                # Skip old alias lines until we hit a non-alias line (includes old gcp/grm for migration)
+                if [[ "$line" =~ ^alias\ (gs|ga|gd|grs|gco|gb|cp|rm|gcp|grm|gcb|gl)= ]] || [[ -z "$line" && "$in_alias_block" == true ]]; then
+                    # Skip this line (it's an old alias or empty line right after block)
+                    if [[ -n "$line" ]]; then
+                        continue
+                    else
+                        # Empty line after block - end of alias block
+                        in_alias_block=false
+                        continue
+                    fi
+                else
+                    # Non-alias line - end of block, keep this line
+                    in_alias_block=false
+                    echo "$line" >> "$temp_file"
+                fi
+            else
+                # Not in alias block - keep line as-is
+                echo "$line" >> "$temp_file"
+            fi
+        done < "$config_file"
+
+        # Replace original file
+        mv "$temp_file" "$config_file"
+        echo "✓ Aliases updated in $config_file"
     else
-        echo "⚠️  git-navigator not found in PATH yet"
-        echo "   Run 'git-navigator alias --update' after restarting your terminal"
+        echo "Adding new aliases to $config_file..."
+        cat >> "$config_file" << 'EOF'
+
+# Git Navigator aliases
+alias gs="git-navigator status"
+alias ga="git-navigator add"
+alias gd="git-navigator diff"
+alias grs="git-navigator reset"
+alias gco="git-navigator checkout"
+alias gb="git-navigator branches"
+alias cp="git-navigator copy"
+alias rm="git-navigator remove"
+alias gcb="git-navigator checkout-branch"
+alias gl="git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
+EOF
+
+        echo "✓ Aliases added to $config_file"
     fi
 }
 
@@ -203,7 +280,6 @@ main() {
         echo "  gb    - Show numbered branches"
         echo "  cp    - Copy files by index"
         echo "  rm    - Remove files by index"
-
         echo "  gcb   - Checkout branch by index"
         echo "  gl    - Visual git log"
         echo -e "\nExample usage:"
@@ -212,7 +288,6 @@ main() {
         echo "  gd 2,4          # Show diff for files 2 and 4"
         echo "  cp 1 /tmp/      # Copy file 1 to /tmp/"
         echo "  rm -- -f 2      # Force remove file 2"
-
         echo -e "\n💡 Restart your terminal or run 'source ~/.bashrc' (or your shell config) to use aliases"
         echo -e "\nClean, lean and fast git productivity tool! 🚀"
         echo ""

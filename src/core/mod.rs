@@ -3,6 +3,7 @@
 //! This module provides the fundamental building blocks for git operations,
 //! file indexing, error handling, and UI components.
 
+pub mod alias_manager;
 pub mod args_parser;
 pub mod colors;
 pub mod command_init;

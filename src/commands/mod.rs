@@ -1,4 +1,5 @@
 pub mod add;
+pub mod alias;
 pub mod branches;
 pub mod checkout;
 pub mod copy;
@@ -10,6 +11,7 @@ pub mod status;
 pub mod update;
 
 pub use add::*;
+pub use alias::*;
 pub use branches::*;
 pub use checkout::*;
 pub use copy::*;

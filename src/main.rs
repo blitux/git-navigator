@@ -89,6 +89,15 @@ enum Commands {
         /// Arguments: indices and/or paths (e.g., "1 3-5")
         args: Vec<String>,
     },
+    /// Manage shell aliases
+    Alias {
+        /// Show current alias status
+        #[arg(long, default_value_t = true)]
+        show: bool,
+        /// Update aliases in shell config
+        #[arg(long)]
+        update: bool,
+    },
 }
 
 fn main() -> Result<()> {
@@ -151,6 +160,9 @@ fn main() -> Result<()> {
         }
         Commands::Remove { args } => {
             handle_command_error(execute_remove(args));
+        }
+        Commands::Alias { show, update } => {
+            handle_command_error(execute_alias(show, update));
         }
     }
 
