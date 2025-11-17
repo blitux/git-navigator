@@ -153,10 +153,12 @@ setup_aliases() {
         *) config_file="$HOME/.profile" ;;
     esac
 
-    if grep -q "git-navigator status" "$config_file" 2>/dev/null; then
-        echo "✓ Aliases already set in $config_file"
+    if grep -q "# Git Navigator aliases" "$config_file" 2>/dev/null; then
+        echo "✓ Aliases already exist. Run the installer again to update them."
+        # TODO: Implement update logic to replace old aliases with new ones
         return
     fi
+
 
     echo "Adding aliases to $config_file..."
     cat >> "$config_file" << 'EOF'
@@ -168,6 +170,8 @@ alias gd="git-navigator diff"
 alias grs="git-navigator reset"
 alias gco="git-navigator checkout"
 alias gb="git-navigator branches"
+alias cp="git-navigator copy"
+alias rm="git-navigator remove"
 alias gcb="git-navigator checkout-branch"
 alias gl="git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
 EOF
@@ -219,16 +223,22 @@ main() {
         echo -e "\nAvailable commands:"
         echo "  gs    - Show numbered git status"
         echo "  ga    - Add files by index"
-        echo "  gd    - Show diff by index" 
+        echo "  gd    - Show diff by index"
         echo "  grs   - Reset files by index"
         echo "  gco   - Checkout files by index"
         echo "  gb    - Show numbered branches"
+        echo "  cp    - Copy files by index"
+        echo "  rm    - Remove files by index"
+
         echo "  gcb   - Checkout branch by index"
         echo "  gl    - Visual git log"
         echo -e "\nExample usage:"
         echo "  gs              # Show numbered file status"
         echo "  ga 1 3-5        # Add files 1, 3, 4, 5"
         echo "  gd 2,4          # Show diff for files 2 and 4"
+        echo "  cp 1 /tmp/      # Copy file 1 to /tmp/"
+        echo "  rm -- -f 2      # Force remove file 2"
+
         echo -e "\n💡 Restart your terminal or run 'source ~/.bashrc' (or your shell config) to use aliases"
         echo -e "\nClean, lean and fast git productivity tool! 🚀"
         echo ""
