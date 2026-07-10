@@ -7,51 +7,67 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
-    name: Build with cross for ${{ matrix.target }}
+  test:
+    name: Test
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Run tests
+        run: go test ./...
+
+  build:
+    name: Build for ${{ matrix.os }}
+    needs: test
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         include:
-          - target: x86_64-unknown-linux-gnu
-            name: git-navigator-linux-x64
-          - target: aarch64-unknown-linux-gnu
-            name: git-navigator-linux-arm64
-          - target: x86_64-unknown-linux-musl
-            name: git-navigator-linux-musl-x64
-          - target: x86_64-pc-windows-gnu
-            name: git-navigator-windows-x64.exe
+          - os: ubuntu-latest
+            artifact: git-navigator-linux-x64
+          - os: macos-latest
+            artifact: git-navigator-darwin-x64
+          - os: windows-latest
+            artifact: git-navigator-windows-x64.exe
+          - os: ubuntu-latest
+            artifact: git-navigator-linux-arm64
+            goos: linux
+            goarch: arm64
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install cross
-        run: cargo install cross
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
 
-      - name: Build with cross
-        run: cross build --release --target ${{ matrix.target }}
-
-      - name: Prepare artifact
-        shell: bash
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos || '' }}
+          GOARCH: ${{ matrix.goarch || '' }}
         run: |
-          if [[ "${{ matrix.target }}" == *"windows"* ]]; then
-            cp target/${{ matrix.target }}/release/git-navigator.exe ${{ matrix.name }}
-          else
-            cp target/${{ matrix.target }}/release/git-navigator ${{ matrix.name }}
-          fi
+          VERSION=${GITHUB_REF#refs/tags/v}
+          CGO_ENABLED=0 go build -ldflags="-s -w -X github.com/blitux/git-navigator/internal/core.Version=$VERSION" -o ${{ matrix.artifact }} ./cmd/git-navigator
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.name }}
-          path: ${{ matrix.name }}
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact }}
 
   release:
     name: Create Release
     needs: build
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
-    
+
     steps:
       - uses: actions/checkout@v4
 
@@ -61,7 +77,7 @@ jobs:
           path: artifacts
 
       - name: Create release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: artifacts/*/*
           generate_release_notes: true
