@@ -49,11 +49,13 @@ jobs:
           go-version: '1.21'
 
       - name: Build
+        shell: bash
         env:
           GOOS: ${{ matrix.goos || '' }}
           GOARCH: ${{ matrix.goarch || '' }}
+          VERSION: ${{ github.ref_name }}
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
+          VERSION=${VERSION#v}
           CGO_ENABLED=0 go build -ldflags="-s -w -X github.com/blitux/git-navigator/internal/core.Version=$VERSION" -o ${{ matrix.artifact }} ./cmd/git-navigator
 
       - name: Upload artifact
