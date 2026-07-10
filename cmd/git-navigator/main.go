@@ -88,12 +88,29 @@ Commands:
 	}
 	branchesCmd.Flags().BoolP("remote", "r", false, "Show remote branches instead of local")
 
+	updateCmd := &cobra.Command{
+		Use:   "update",
+		Short: "Check for updates or update to the latest version",
+		Run: func(cmd *cobra.Command, args []string) {
+			check, _ := cmd.Flags().GetBool("check")
+			version, _ := cmd.Flags().GetBool("version")
+			yes, _ := cmd.Flags().GetBool("yes")
+			verbose, _ := cmd.Flags().GetBool("verbose")
+			commands.ExecuteUpdate(check, version, yes, verbose)
+		},
+	}
+	updateCmd.Flags().Bool("check", false, "Check for updates without installing")
+	updateCmd.Flags().Bool("version", false, "Show current version")
+	updateCmd.Flags().Bool("yes", false, "Skip confirmation prompt")
+	updateCmd.Flags().Bool("verbose", false, "Show verbose output")
+
 	rootCmd.AddCommand(statusCmd)
 	rootCmd.AddCommand(addCmd)
 	rootCmd.AddCommand(diffCmd)
 	rootCmd.AddCommand(resetCmd)
 	rootCmd.AddCommand(checkoutCmd)
 	rootCmd.AddCommand(branchesCmd)
+	rootCmd.AddCommand(updateCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
