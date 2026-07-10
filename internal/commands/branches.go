@@ -77,8 +77,6 @@ func listBranches(gitRepo *core.GitRepo, showRemote bool) {
 		Body(body).
 		Help(helpText).
 		Print()
-
-	saveBranchesCache(branches, gitRepo.GetWorkDir())
 }
 
 func checkoutBranchByIndex(gitRepo *core.GitRepo, index int) {
@@ -115,7 +113,4 @@ func checkoutBranchByIndex(gitRepo *core.GitRepo, index int) {
 	}
 
 	fmt.Printf("Switched to branch '%s'\n", targetBranch)
-}
-
-func saveBranchesCache(branches []core.BranchEntry, repoPath string) {
 }

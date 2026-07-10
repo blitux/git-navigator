@@ -86,6 +86,9 @@ func ValidateIndices(indices []int, maxIndex int) *GitNavigatorError {
 }
 
 func IsNumericIndex(arg string) bool {
+	if arg == "" {
+		return false
+	}
 	for _, c := range arg {
 		if c != '-' && c != ',' && c != ' ' && (c < '0' || c > '9') {
 			return false

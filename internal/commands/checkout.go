@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/blitux/git-navigator/internal/core"
 )
@@ -43,21 +42,8 @@ func ExecuteCheckout(args []string, createBranch bool) {
 }
 
 func checkoutFilesByIndices(args []string) {
-	cwd, err := os.Getwd()
-	if err != nil {
-		core.PrintError("Could not determine current directory")
-		return
-	}
-
-	gitRepo, gerr := core.OpenGitRepo(cwd)
-	if gerr != nil {
-		core.PrintError(gerr.Message)
-		return
-	}
-
-	cache, gerr := core.LoadCache(cwd)
-	if gerr != nil {
-		core.PrintError(fmt.Sprintf("Cannot load file cache: %s. Run 'gs' first.", gerr.Message))
+	gitRepo, cache := getRepoAndCache()
+	if gitRepo == nil {
 		return
 	}
 
@@ -100,7 +86,6 @@ func checkoutFilesByIndices(args []string) {
 
 	newCache := &core.StateCache{
 		Files:       files,
-		Branches:    []core.BranchEntry{},
 		LastUpdated: nowUnix(),
 		RepoPath:    gitRepo.GetWorkDir(),
 	}
@@ -108,15 +93,8 @@ func checkoutFilesByIndices(args []string) {
 }
 
 func checkoutBranchByName(name string) {
-	cwd, err := os.Getwd()
-	if err != nil {
-		core.PrintError("Could not determine current directory")
-		return
-	}
-
-	gitRepo, gerr := core.OpenGitRepo(cwd)
-	if gerr != nil {
-		core.PrintError(gerr.Message)
+	gitRepo := getRepo()
+	if gitRepo == nil {
 		return
 	}
 
@@ -129,15 +107,8 @@ func checkoutBranchByName(name string) {
 }
 
 func createAndCheckoutBranch(name string) {
-	cwd, err := os.Getwd()
-	if err != nil {
-		core.PrintError("Could not determine current directory")
-		return
-	}
-
-	gitRepo, gerr := core.OpenGitRepo(cwd)
-	if gerr != nil {
-		core.PrintError(gerr.Message)
+	gitRepo := getRepo()
+	if gitRepo == nil {
 		return
 	}
 

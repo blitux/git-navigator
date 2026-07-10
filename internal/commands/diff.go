@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"os"
 	"os/exec"
 
 	"github.com/blitux/git-navigator/internal/core"
@@ -17,21 +16,8 @@ func ExecuteDiff(args []string) {
 		return
 	}
 
-	cwd, err := os.Getwd()
-	if err != nil {
-		core.PrintError("Could not determine current directory")
-		return
-	}
-
-	gitRepo, gerr := core.OpenGitRepo(cwd)
-	if gerr != nil {
-		core.PrintError(gerr.Message)
-		return
-	}
-
-	cache, gerr := core.LoadCache(cwd)
-	if gerr != nil {
-		core.PrintError(fmt.Sprintf("Cannot load file cache: %s. Run 'gs' first.", gerr.Message))
+	gitRepo, cache := getRepoAndCache()
+	if gitRepo == nil {
 		return
 	}
 

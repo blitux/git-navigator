@@ -3,13 +3,14 @@ package commands
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/blitux/git-navigator/internal/core"
 	"github.com/fatih/color"
 )
 
 func ExecuteStatus() {
-	cwd, err := getCurrentDir()
+	cwd, err := os.Getwd()
 	if err != nil {
 		core.PrintError("Not in a git repository")
 		return
@@ -62,7 +63,6 @@ func ExecuteStatus() {
 
 	cache := &core.StateCache{
 		Files:       files,
-		Branches:    []core.BranchEntry{},
 		LastUpdated: nowUnix(),
 		RepoPath:    gitRepo.GetWorkDir(),
 	}
@@ -146,9 +146,5 @@ func repeatSpaces(n int) string {
 }
 
 func nowUnix() int64 {
-	return 0
-}
-
-func getCurrentDir() (string, error) {
-	return os.Getwd()
+	return time.Now().Unix()
 }

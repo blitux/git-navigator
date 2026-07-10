@@ -39,22 +39,6 @@ const (
 	ErrCustom
 )
 
-type Result[T any] struct {
-	Value T
-	Err   *GitNavigatorError
-}
-
-func (r Result[T]) Ok() (T, error) {
-	if r.Err != nil {
-		return r.Value, r.Err
-	}
-	return r.Value, nil
-}
-
-func (r Result[T]) IsOk() bool {
-	return r.Err == nil
-}
-
 func NotInGitRepo() *GitNavigatorError {
 	return &GitNavigatorError{Code: ErrNotInGitRepo, Message: "Not in a git repository"}
 }
@@ -121,29 +105,6 @@ func IoError(err error) *GitNavigatorError {
 
 func (e *GitNavigatorError) Error() string {
 	return e.Message
-}
-
-func NewResult[T any](value T, err error) Result[T] {
-	if err == nil {
-		return Result[T]{Value: value, Err: nil}
-	}
-	if gerr, ok := err.(*GitNavigatorError); ok {
-		return Result[T]{Value: value, Err: gerr}
-	}
-	return Result[T]{Value: value, Err: &GitNavigatorError{Code: ErrCustom, Message: err.Error()}}
-}
-
-func NewOkResult[T any](value T) Result[T] {
-	return Result[T]{Value: value, Err: nil}
-}
-
-func NewErrorResult[T any](err *GitNavigatorError) Result[T] {
-	return Result[T]{Value: *new(T), Err: err}
-}
-
-type CacheInfo struct {
-	Path string
-	Err  error
 }
 
 func LoadCache(repoPath string) (*StateCache, *GitNavigatorError) {

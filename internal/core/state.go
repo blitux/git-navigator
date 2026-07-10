@@ -1,6 +1,7 @@
 package core
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -103,10 +104,9 @@ type BranchEntry struct {
 }
 
 type StateCache struct {
-	Files       []FileEntry   `json:"files"`
-	Branches    []BranchEntry `json:"branches"`
-	LastUpdated int64         `json:"last_updated"`
-	RepoPath    string        `json:"repo_path"`
+	Files       []FileEntry `json:"files"`
+	LastUpdated int64       `json:"last_updated"`
+	RepoPath    string      `json:"repo_path"`
 }
 
 func GetCacheDir(repoPath string) (string, error) {
@@ -119,19 +119,12 @@ func GetCacheDir(repoPath string) (string, error) {
 		cacheHome = filepath.Join(home, "git-navigator")
 	}
 
-	hash := md5Hash(repoPath)
+	hash := hashRepoPath(repoPath)
 	return filepath.Join(cacheHome, hash), nil
 }
 
-func md5Hash(s string) string {
-	data := []byte(s)
-	sum := make([]byte, 16)
-	for i := range sum {
-		sum[i] = data[i%len(data)]
-	}
-	result := ""
-	for _, b := range sum {
-		result += fmt.Sprintf("%02x", b)
-	}
-	return result
+func hashRepoPath(repoPath string) string {
+	h := sha256.New()
+	h.Write([]byte(repoPath))
+	return fmt.Sprintf("%x", h.Sum(nil))[:16]
 }
