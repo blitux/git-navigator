@@ -2,13 +2,21 @@
 
 A lightweight and efficient Git navigation tool written in Go.
 
+## Features
+
+- **Numbered output**: All files and branches are numbered for quick reference
+- **Flexible index parsing**: Supports `1`, `1-3`, `1,3,5`, `1 3-5,8` formats
+- **Colored output**: Clear visual distinction between file statuses
+- **State caching**: Persists state to avoid re-running git commands
+- **Single binary**: No runtime dependencies
+
 ## Installation
 
-```bash
-go install github.com/blitux/git-navigator@latest
-```
+### From Binary
 
-Or build from source:
+Download from [releases](https://github.com/blitux/git-navigator/releases) and add to PATH.
+
+### From Source
 
 ```bash
 git clone https://github.com/blitux/git-navigator.git
@@ -84,13 +92,6 @@ List numbered branches:
 git-navigator branches
 git-navigator branches --remote
 ```
-
-## Features
-
-- **Numbered output**: All files and branches are numbered for quick reference
-- **Flexible index parsing**: Supports `1`, `1-3`, `1,3,5`, `1 3-5,8` formats
-- **Colored output**: Clear visual distinction between file statuses
-- **State caching**: Persists state to avoid re-running git commands
 
 ## Cache Location
 
