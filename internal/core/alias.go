@@ -274,25 +274,22 @@ func (m *AliasManager) replaceOrAppendBlock(content string, newLines []string) s
 func (m *AliasManager) replaceBlock(content string, newLines []string) string {
 	var result []string
 	inBlock := false
-	blockReplaced := false
 
-	for _, line := range strings.Split(content, "\n") {
-		if strings.HasPrefix(strings.TrimSpace(line), AliasMarker) {
-			if !blockReplaced {
-				result = append(result, newLines...)
-				blockReplaced = true
-			}
+	lines := strings.Split(content, "\n")
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+
+		if strings.HasPrefix(trimmed, AliasMarker) {
+			result = append(result, newLines...)
 			inBlock = true
 			continue
 		}
 
 		if inBlock {
-			if strings.TrimSpace(line) == "" {
-				inBlock = false
-				result = append(result, line)
+			if trimmed == "" {
 				continue
 			}
-			if strings.HasPrefix(strings.TrimSpace(line), "alias ") {
+			if strings.HasPrefix(trimmed, "alias ") {
 				continue
 			}
 			inBlock = false
