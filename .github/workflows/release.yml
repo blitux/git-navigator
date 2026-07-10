@@ -35,10 +35,6 @@ jobs:
             artifact: git-navigator-darwin-x64
           - os: windows-latest
             artifact: git-navigator-windows-x64.exe
-          - os: ubuntu-latest
-            artifact: git-navigator-linux-arm64
-            goos: linux
-            goarch: arm64
 
     steps:
       - uses: actions/checkout@v4
