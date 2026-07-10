@@ -14,7 +14,7 @@ func main() {
 	rootCmd := &cobra.Command{
 		Use:   "git-navigator",
 		Short: "A lightweight and efficient Git navigation tool",
-		Long:  `Git Navigator - A modern reimagining of SCM Breeze's core workflow
+		Long: `Git Navigator - A modern reimagining of SCM Breeze's core workflow
 
 Commands:
   gs    Show numbered git status

@@ -102,10 +102,10 @@ func (g *GitRepo) GetStatus() ([]FileEntry, *GitNavigatorError) {
 		staged := line[0] != ' ' && line[0] != '?'
 		unstaged := line[1] != ' '
 
-	XY := line[:2]
-	path := strings.TrimSpace(line[3:])
+		XY := line[:2]
+		path := strings.TrimSpace(line[3:])
 
-	status := parseStatus(XY)
+		status := parseStatus(XY)
 
 		if staged && status != GitStatusUntracked {
 			lineNum++

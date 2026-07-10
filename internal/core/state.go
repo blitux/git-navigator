@@ -68,14 +68,14 @@ func (s GitStatus) Description() string {
 
 func (s GitStatus) SortPriority(staged bool) int {
 	priority := map[GitStatus]int{
-		GitStatusUnmerged:   0,
-		GitStatusAdded:      1,
-		GitStatusModified:   2,
-		GitStatusDeleted:    3,
-		GitStatusRenamed:    4,
-		GitStatusCopied:     5,
+		GitStatusUnmerged:    0,
+		GitStatusAdded:       1,
+		GitStatusModified:    2,
+		GitStatusDeleted:     3,
+		GitStatusRenamed:     4,
+		GitStatusCopied:      5,
 		GitStatusTypeChanged: 6,
-		GitStatusUntracked:  12,
+		GitStatusUntracked:   12,
 	}
 
 	base := priority[s]
