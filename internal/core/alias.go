@@ -104,7 +104,7 @@ func (s Shell) ParseAlias(line string) (string, string, bool) {
 			return "", "", false
 		}
 		name := parts[0]
-		command := strings.Trim(parts[1], "\"")
+		command := strings.Trim(parts[1], "\"'")
 		return name, command, true
 	default:
 		parts := strings.SplitN(rest, "=", 2)
@@ -112,7 +112,7 @@ func (s Shell) ParseAlias(line string) (string, string, bool) {
 			return "", "", false
 		}
 		name := parts[0]
-		command := strings.Trim(parts[1], "\"")
+		command := strings.Trim(parts[1], "\"'")
 		return name, command, true
 	}
 }
@@ -128,6 +128,7 @@ type AliasDefinition struct {
 type AliasStatus struct {
 	Installed bool
 	Outdated  bool
+	Missing   bool
 	Current   string
 }
 
@@ -146,6 +147,7 @@ func (AliasRegistry) Definitions() []AliasDefinition {
 		{Name: "grs", Command: "git-navigator reset", Description: "Reset files by index"},
 		{Name: "gco", Command: "git-navigator checkout", Description: "Checkout files by index"},
 		{Name: "gb", Command: "git-navigator branches", Description: "Show numbered branches"},
+		{Name: "gl", Command: "git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit", Description: "Visual git log"},
 	}
 }
 
@@ -189,6 +191,15 @@ func NewAliasManager() (*AliasManager, error) {
 	return manager, nil
 }
 
+func NewAliasManagerForTest(shell Shell, configPath string) *AliasManager {
+	return &AliasManager{
+		shell:       shell,
+		configPath:   configPath,
+		allAliases:  make(map[string]string),
+		currentDefs: AliasRegistry{}.DefinitionsMap(),
+	}
+}
+
 func (m *AliasManager) readAliases() {
 	content, err := os.ReadFile(m.configPath)
 	if err != nil {
@@ -223,7 +234,7 @@ func (m *AliasManager) Compare() []AliasComparison {
 	var comparisons []AliasComparison
 
 	for _, def := range m.currentDefs {
-		status := AliasStatus{Installed: false, Outdated: false}
+		status := AliasStatus{Installed: false, Outdated: false, Missing: false}
 		if cmd, exists := m.allAliases[def.Name]; exists {
 			if cmd == def.Command {
 				status.Installed = true
@@ -231,6 +242,8 @@ func (m *AliasManager) Compare() []AliasComparison {
 				status.Outdated = true
 				status.Current = cmd
 			}
+		} else {
+			status.Missing = true
 		}
 		comparisons = append(comparisons, AliasComparison{
 			Alias:  def,
@@ -274,25 +287,22 @@ func (m *AliasManager) replaceOrAppendBlock(content string, newLines []string) s
 func (m *AliasManager) replaceBlock(content string, newLines []string) string {
 	var result []string
 	inBlock := false
-	blockReplaced := false
 
-	for _, line := range strings.Split(content, "\n") {
-		if strings.HasPrefix(strings.TrimSpace(line), AliasMarker) {
-			if !blockReplaced {
-				result = append(result, newLines...)
-				blockReplaced = true
-			}
+	lines := strings.Split(content, "\n")
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+
+		if strings.HasPrefix(trimmed, AliasMarker) {
+			result = append(result, newLines...)
 			inBlock = true
 			continue
 		}
 
 		if inBlock {
-			if strings.TrimSpace(line) == "" {
-				inBlock = false
-				result = append(result, line)
+			if trimmed == "" {
 				continue
 			}
-			if strings.HasPrefix(strings.TrimSpace(line), "alias ") {
+			if strings.HasPrefix(trimmed, "alias ") {
 				continue
 			}
 			inBlock = false
