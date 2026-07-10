@@ -116,6 +116,16 @@ Commands:
 	rollbackCmd.Flags().Bool("list", false, "List available backups")
 	rollbackCmd.Flags().String("version", "", "Restore specific version")
 
+	aliasCmd := &cobra.Command{
+		Use:   "alias",
+		Short: "Show or update shell aliases",
+		Run: func(cmd *cobra.Command, args []string) {
+			update, _ := cmd.Flags().GetBool("update")
+			commands.ExecuteAlias(update)
+		},
+	}
+	aliasCmd.Flags().Bool("update", false, "Update aliases in shell configuration")
+
 	rootCmd.AddCommand(statusCmd)
 	rootCmd.AddCommand(addCmd)
 	rootCmd.AddCommand(diffCmd)
@@ -124,6 +134,7 @@ Commands:
 	rootCmd.AddCommand(branchesCmd)
 	rootCmd.AddCommand(updateCmd)
 	rootCmd.AddCommand(rollbackCmd)
+	rootCmd.AddCommand(aliasCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
