@@ -37,15 +37,10 @@ func ExecuteUpdate(check, showVersion, yes, verbose bool) {
 	}
 
 	body := formatVersionInfo(release, needsUpdate)
-	helpText := ""
-	if needsUpdate {
-		helpText = "Ejecuta 'git-navigator update' para instalar la actualización"
-	}
 
 	core.Template().
 		Title("Información de versión").
 		Body(body).
-		Help(helpText).
 		Print()
 
 	if !needsUpdate {

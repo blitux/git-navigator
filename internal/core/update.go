@@ -51,17 +51,14 @@ var (
 func GetTarget() string {
 	goos := runtime.GOOS
 	goarch := runtime.GOARCH
-	env := runtime.GOOS
 
 	switch {
 	case goos == "windows" && goarch == "amd64":
 		return "windows-x64.exe"
-	case goos == "linux" && goarch == "amd64" && env == "gnu":
+	case goos == "linux" && goarch == "amd64":
 		return "linux-x64"
 	case goos == "linux" && goarch == "arm64":
 		return "linux-arm64"
-	case goos == "linux" && goarch == "amd64" && env == "musl":
-		return "linux-musl-x64"
 	case goos == "darwin" && goarch == "amd64":
 		return "darwin-x64"
 	case goos == "darwin" && goarch == "arm64":
@@ -226,7 +223,14 @@ func FormatReleaseNotes(body string, maxLines int) string {
 		}
 		line = strings.TrimPrefix(line, "- ")
 		line = strings.TrimPrefix(line, "* ")
-		if line != "" && !strings.HasPrefix(line, "#") && !strings.HasPrefix(line, "##") {
+		line = strings.TrimPrefix(line, "+ ")
+		if strings.HasPrefix(line, "#") {
+			continue
+		}
+		if strings.Contains(line, "**Full Changelog") || strings.Contains(line, "http") {
+			continue
+		}
+		if line != "" {
 			lines = append(lines, line)
 			if len(lines) >= maxLines {
 				break
