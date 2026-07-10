@@ -104,6 +104,18 @@ Commands:
 	updateCmd.Flags().Bool("yes", false, "Skip confirmation prompt")
 	updateCmd.Flags().Bool("verbose", false, "Show verbose output")
 
+	rollbackCmd := &cobra.Command{
+		Use:   "rollback",
+		Short: "Restore a previous version from backup",
+		Run: func(cmd *cobra.Command, args []string) {
+			list, _ := cmd.Flags().GetBool("list")
+			version, _ := cmd.Flags().GetString("version")
+			commands.ExecuteRollback(list, version)
+		},
+	}
+	rollbackCmd.Flags().Bool("list", false, "List available backups")
+	rollbackCmd.Flags().String("version", "", "Restore specific version")
+
 	rootCmd.AddCommand(statusCmd)
 	rootCmd.AddCommand(addCmd)
 	rootCmd.AddCommand(diffCmd)
@@ -111,6 +123,7 @@ Commands:
 	rootCmd.AddCommand(checkoutCmd)
 	rootCmd.AddCommand(branchesCmd)
 	rootCmd.AddCommand(updateCmd)
+	rootCmd.AddCommand(rollbackCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
